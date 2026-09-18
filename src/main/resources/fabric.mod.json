@@ -1,0 +1,23 @@
+{
+	"schemaVersion": 1,
+	"id": "craftcmd",
+	"version": "${version}",
+	"name": "Craft Command",
+	"description": "Client side /craft command: craft an item from the items you already carry, using the vanilla crafting grid (2x2 from the inventory, 3x3 when a crafting table is open).",
+	"authors": [
+		"MineAgent"
+	],
+	"license": "LGPL-3.0-only",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"com.craftcmd.CraftCmdMod"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

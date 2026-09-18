@@ -1,0 +1,18 @@
+{
+	"craftcmd.msg.started": "Crafting %s ×%s…",
+	"craftcmd.msg.done": "Crafted %s ×%s",
+	"craftcmd.error.busy": "Another /craft job is already running.",
+	"craftcmd.error.not_ready": "Not connected to a world.",
+	"craftcmd.error.no_menu": "Open your inventory or a crafting table first.",
+	"craftcmd.error.cursor": "Put down the item held on your cursor first.",
+	"craftcmd.error.grid_not_empty": "The crafting grid is not empty. Clear it first.",
+	"craftcmd.error.unknown_item": "Unknown item id: %s",
+	"craftcmd.error.no_recipe": "No unlocked crafting recipe produces %s",
+	"craftcmd.error.unsupported": "This recipe cannot be placed in the crafting grid: %s",
+	"craftcmd.error.needs_table": "This recipe needs a 3×3 crafting table. Open a crafting table first.",
+	"craftcmd.error.not_enough": "Not enough materials: %s needs %s but only %s is available.",
+	"craftcmd.error.no_space": "Not enough inventory space for %s ×%s.",
+	"craftcmd.error.menu_changed": "Crafting interrupted: the container was closed or changed.",
+	"craftcmd.error.timeout": "Crafting failed: the recipe could not be completed.",
+	"craftcmd.error.internal": "Crafting failed because of an internal error."
+}
