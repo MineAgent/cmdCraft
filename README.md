@@ -1,10 +1,12 @@
 # Craft Command (`craftcmd`)
 
-[![License: LGPL-2.1-only](https://img.shields.io/badge/license-LGPL--3.0--only-blue.svg)](LICENSE)
+[![License: LGPL-3.0-only](https://img.shields.io/badge/license-LGPL--3.0--only-blue.svg)](LICENSE)
 
-A **client side** Fabric mod for **Minecraft 26.2** that adds a `/craft` chat command. It crafts an
-item from the materials you are already carrying, using the vanilla crafting grid — no crafting table
-GUI juggling required.
+A **client side** Fabric mod for **Minecraft 26.2** that adds two chat commands:
+
+* `/craft` — crafts an item from the materials you are already carrying, using the vanilla crafting
+  grid (no crafting table GUI juggling required).
+* `/furnace` — reads and moves items in the furnace (blast furnace / smoker) screen you have open.
 
 ```
 /craft <item id> [amount]
@@ -47,6 +49,52 @@ anything on the server.
 The job runs in the background, one step per client tick, so a large `/craft` does not freeze the
 game. Only one `/craft` job runs at a time.
 
+## Furnace commands
+
+Open a furnace (or blast furnace / smoker — they share the same menu) and keep the screen open:
+
+```
+/furnace getinfo                       # what is in the input / fuel / output slot
+/furnace put <raw|fuel> <item id> [amount]   # move items from your inventory into the furnace
+/furnace get <raw|fuel|product> [amount]     # move items from the furnace into your inventory
+```
+
+`amount` defaults to `1`. Examples:
+
+```
+/furnace getinfo
+/furnace put raw minecraft:raw_iron 8
+/furnace put fuel minecraft:coal 4
+/furnace get product 1
+```
+
+`getinfo` prints one line, for example
+`熔炉 → 原料：粗铁 ×8 ｜ 燃料：煤炭 ×4 ｜ 产物：空`.
+
+Checks (a failing command changes nothing):
+
+| Situation | Result |
+|---|---|
+| no furnace screen open | error (`请先右键打开一个熔炉…`) |
+| `put`: the slot already holds another item | error, showing what is in there |
+| `put`: the item would exceed the slot's stack limit | error, showing current/max/requested |
+| `put`: the item cannot go into that slot (e.g. stone as fuel) | error |
+| `put`: you do not carry that many | error, showing how many you have |
+| `get`: the slot is empty | error |
+| `get`: the inventory cannot hold the items | error |
+| cursor holding an item | error |
+| invalid slot name | brigadier error listing `raw`, `fuel`, `product` |
+
+Notes:
+
+* `get raw` / `get fuel` can split stacks to any amount. If you ask for more than the slot holds, the
+  whole slot is taken and the actual amount is reported.
+* `get product` cannot split a stack: a result slot never accepts items back (vanilla behaviour), so
+  asking for fewer items than the output holds takes the whole stack and says so
+  (`产物格不能拆分，已整堆取出 …`).
+* A furnace block entity is **not** synchronised to the client, so the commands need the furnace
+  screen to be open — that is also the only way the server accepts slot clicks.
+
 ## Requirements
 
 | | |
@@ -63,7 +111,7 @@ Minecraft 26.2 is unobfuscated and Fabric now uses Mojang's names, so the projec
 
 ```bash
 ./gradlew build
-# -> build/libs/craftcmd-1.0.0.jar
+# -> build/libs/craftcmd-1.1.0.jar
 ```
 
 ## Error messages

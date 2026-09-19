@@ -14,5 +14,22 @@
 	"craftcmd.error.no_space": "Not enough inventory space for %s ×%s.",
 	"craftcmd.error.menu_changed": "Crafting interrupted: the container was closed or changed.",
 	"craftcmd.error.timeout": "Crafting failed: the recipe could not be completed.",
-	"craftcmd.error.internal": "Crafting failed because of an internal error."
+	"craftcmd.error.internal": "Crafting failed because of an internal error.",
+	"craftcmd.furnace.info": "Furnace → input: %s | fuel: %s | output: %s",
+	"craftcmd.furnace.empty": "empty",
+	"craftcmd.furnace.item": "%s ×%s",
+	"craftcmd.furnace.slot.raw": "input",
+	"craftcmd.furnace.slot.fuel": "fuel",
+	"craftcmd.furnace.slot.product": "output",
+	"craftcmd.furnace.put.done": "Inserted %s ×%s into the %s slot",
+	"craftcmd.furnace.get.done": "Took %s ×%s out of the %s slot",
+	"craftcmd.furnace.error.not_open": "Open a furnace first (right click a furnace and keep the screen open).",
+	"craftcmd.furnace.error.occupied": "The %s slot already holds %s; take that out first.",
+	"craftcmd.furnace.error.cannot_place": "%s cannot be put into the %s slot.",
+	"craftcmd.furnace.error.stack_limit": "Stack limit reached: the %s slot holds %s of at most %s, cannot add %s more.",
+	"craftcmd.furnace.error.not_enough_item": "You carry only %s ×%s, but %s are needed.",
+	"craftcmd.furnace.error.empty_slot": "The %s slot is empty.",
+	"craftcmd.furnace.error.no_space": "Not enough inventory space for %s ×%s.",
+	"craftcmd.furnace.error.unknown_slot": "Unknown slot (use raw, fuel or product)",
+	"craftcmd.furnace.get.whole": "The output slot cannot be split; took the whole stack: %s ×%s"
 }

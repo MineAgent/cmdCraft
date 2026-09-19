@@ -14,10 +14,10 @@ import org.slf4j.LoggerFactory;
 /**
  * Entry point of the (client only) mod.
  *
- * <p>All the work happens on the client: the {@code /craft} command looks the recipe up in the
- * client side recipe book, checks the player's inventory, and then drives the vanilla crafting
- * grid through regular {@code ServerboundContainerClickPacket}s. No server side component and no
- * mixin is required, which means the mod also works on unmodified servers.
+ * <p>All the work happens on the client: {@code /craft} looks the recipe up in the client side recipe
+ * book and {@code /furnace} drives the open furnace screen, both through regular
+ * {@code ServerboundContainerClickPacket}s. No server side component and no mixin is required, which
+ * means the mod also works on unmodified servers.
  */
 public final class CraftCmdMod implements ClientModInitializer {
 	public static final String MOD_ID = "craftcmd";
@@ -25,7 +25,10 @@ public final class CraftCmdMod implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
-		ClientCommandRegistrationCallback.EVENT.register((dispatcher, buildContext) -> CraftCommand.register(dispatcher));
+		ClientCommandRegistrationCallback.EVENT.register((dispatcher, buildContext) -> {
+			CraftCommand.register(dispatcher);
+			FurnaceCommand.register(dispatcher);
+		});
 		ClientTickEvents.END_CLIENT_TICK.register(CraftJob::tick);
 	}
 }

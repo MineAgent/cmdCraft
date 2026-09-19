@@ -14,5 +14,22 @@
 	"craftcmd.error.no_space": "背包空间不足：无法容纳 %s ×%s。",
 	"craftcmd.error.menu_changed": "合成中断：容器已关闭或已切换。",
 	"craftcmd.error.timeout": "合成失败：未能在合成格中完成该配方。",
-	"craftcmd.error.internal": "合成失败：发生内部错误。"
+	"craftcmd.error.internal": "合成失败：发生内部错误。",
+	"craftcmd.furnace.info": "熔炉 → 原料：%s ｜ 燃料：%s ｜ 产物：%s",
+	"craftcmd.furnace.empty": "空",
+	"craftcmd.furnace.item": "%s ×%s",
+	"craftcmd.furnace.slot.raw": "原料",
+	"craftcmd.furnace.slot.fuel": "燃料",
+	"craftcmd.furnace.slot.product": "产物",
+	"craftcmd.furnace.put.done": "已放入 %s ×%s → %s格",
+	"craftcmd.furnace.get.done": "已取出 %s ×%s ← %s格",
+	"craftcmd.furnace.error.not_open": "请先右键打开一个熔炉，并保持在熔炉界面里。",
+	"craftcmd.furnace.error.occupied": "%s格已有 %s，请先把它取出来。",
+	"craftcmd.furnace.error.cannot_place": "%s 不能放入%s格。",
+	"craftcmd.furnace.error.stack_limit": "超过堆放上限：%s格最多 %s 个，当前已有 %s 个，无法再放入 %s 个。",
+	"craftcmd.furnace.error.not_enough_item": "背包中只有 %s ×%s，需要 %s 个。",
+	"craftcmd.furnace.error.empty_slot": "%s格是空的。",
+	"craftcmd.furnace.error.no_space": "背包空间不足：无法容纳 %s ×%s。",
+	"craftcmd.furnace.error.unknown_slot": "未知的槽位（可用：raw、fuel、product）",
+	"craftcmd.furnace.get.whole": "产物格不能拆分，已整堆取出 %s ×%s ← %s格"
 }
