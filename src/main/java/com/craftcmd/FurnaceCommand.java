@@ -11,14 +11,11 @@ import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.AbstractFurnaceMenu;
-import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -40,7 +37,6 @@ public final class FurnaceCommand {
 	public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
 		dispatcher.register(
 				ClientCommands.literal("furnace")
-						.then(ClientCommands.literal("getinfo").executes(FurnaceCommand::getInfo))
 						.then(ClientCommands.literal("put")
 								.then(ClientCommands.argument("slot", FurnaceSlotArgumentType.put())
 										.then(ClientCommands.argument("item", ItemIdArgumentType.INSTANCE)
@@ -56,33 +52,6 @@ public final class FurnaceCommand {
 												.argument("amount", IntegerArgumentType.integer(1, MAX_AMOUNT))
 												.executes(context -> get(context,
 														IntegerArgumentType.getInteger(context, "amount")))))));
-	}
-
-	// ------------------------------------------------------------------
-	// /furnace getinfo
-	// ------------------------------------------------------------------
-
-	private static int getInfo(CommandContext<FabricClientCommandSource> context) {
-		FabricClientCommandSource source = context.getSource();
-		AbstractFurnaceMenu menu = furnaceMenu(source);
-
-		if (menu == null) {
-			return 0;
-		}
-
-		source.sendFeedback(Component.translatable("craftcmd.furnace.info", describe(menu, FurnaceSlot.RAW),
-				describe(menu, FurnaceSlot.FUEL), describe(menu, FurnaceSlot.PRODUCT)));
-		return 1;
-	}
-
-	private static Component describe(AbstractFurnaceMenu menu, FurnaceSlot slot) {
-		ItemStack stack = menu.getSlot(slot.menuSlot()).getItem();
-
-		if (stack.isEmpty()) {
-			return Component.translatable("craftcmd.furnace.empty");
-		}
-
-		return Component.translatable("craftcmd.furnace.item", stack.getHoverName(), stack.getCount());
 	}
 
 	// ------------------------------------------------------------------
@@ -112,25 +81,34 @@ public final class FurnaceCommand {
 		}
 
 		Minecraft client = source.getClient();
-		LocalPlayer player = client.player;
-		Inventory inventory = player.getInventory();
+		Inventory inventory = client.player.getInventory();
 		Slot targetSlot = menu.getSlot(slot.menuSlot());
 		ItemStack target = targetSlot.getItem();
-		ItemStack prototype = new ItemStack(item);
 		Component slotName = Component.translatable(slot.translationKey());
 
 		if (!target.isEmpty() && !target.is(item)) {
-			source.sendError(Component.translatable("craftcmd.furnace.error.occupied", slotName, target.getHoverName()));
+			source.sendError(
+					Component.translatable("craftcmd.furnace.error.occupied", slotName, target.getHoverName()));
 			return 0;
 		}
 
-		if (!targetSlot.mayPlace(prototype)) {
-			source.sendError(Component.translatable("craftcmd.furnace.error.cannot_place", prototype.getHoverName(),
-					slotName));
+		// The stack already in the slot (or the first matching one in the inventory) decides what exactly
+		// is moved: only identical stacks are ever merged into the same slot.
+		ItemStack reference = target.isEmpty() ? MenuSlots.firstMatching(inventory, item) : target.copy();
+
+		if (reference.isEmpty()) {
+			source.sendError(Component.translatable("craftcmd.furnace.error.not_enough_item",
+					new ItemStack(item).getHoverName(), 0, amount));
 			return 0;
 		}
 
-		int max = targetSlot.getMaxStackSize(prototype);
+		if (!targetSlot.mayPlace(reference)) {
+			source.sendError(
+					Component.translatable("craftcmd.furnace.error.cannot_place", reference.getHoverName(), slotName));
+			return 0;
+		}
+
+		int max = targetSlot.getMaxStackSize(reference);
 
 		if (target.getCount() + amount > max) {
 			source.sendError(Component.translatable("craftcmd.furnace.error.stack_limit", slotName, max,
@@ -138,57 +116,27 @@ public final class FurnaceCommand {
 			return 0;
 		}
 
-		int available = MenuSlots.count(inventory, item);
+		int available = MenuSlots.countExact(inventory, reference);
 
 		if (available < amount) {
 			source.sendError(Component.translatable("craftcmd.furnace.error.not_enough_item",
-					prototype.getHoverName(), available, amount));
+					reference.getHoverName(), available, amount));
 			return 0;
 		}
 
 		int[] slots = MenuSlots.playerSlots(menu, inventory);
-		int remaining = amount;
+		int inserted = MenuSlots.moveIntoSlot(client, menu, slot.menuSlot(), reference, amount, inventory, slots);
 
-		while (remaining > 0) {
-			int inventoryIndex = MenuSlots.findItem(inventory, item);
-
-			if (inventoryIndex < 0 || slots[inventoryIndex] < 0) {
-				break;
-			}
-
-			int from = slots[inventoryIndex];
-			click(client, menu, from, 0);
-			int carried = menu.getCarried().getCount();
-
-			if (carried <= 0) {
-				break;
-			}
-
-			int place = Math.min(remaining, carried);
-
-			if (place >= carried) {
-				click(client, menu, slot.menuSlot(), 0);
-			} else {
-				for (int i = 0; i < place; i++) {
-					click(client, menu, slot.menuSlot(), 1);
-				}
-
-				click(client, menu, from, 0);
-			}
-
-			remaining -= place;
-		}
-
-		int inserted = amount - remaining;
-
-		if (inserted <= 0) {
+		if (inserted < amount) {
+			// The checks above should make this impossible; put back what was moved and report.
+			MenuSlots.takeFromSlot(client, menu, slot.menuSlot(), inserted, inventory, slots);
 			source.sendError(Component.translatable("craftcmd.furnace.error.not_enough_item",
-					prototype.getHoverName(), available, amount));
+					reference.getHoverName(), inserted, amount));
 			return 0;
 		}
 
-		source.sendFeedback(Component.translatable("craftcmd.furnace.put.done", prototype.getHoverName(), inserted,
-				slotName));
+		source.sendFeedback(
+				Component.translatable("craftcmd.furnace.put.done", reference.getHoverName(), inserted, slotName));
 		CraftCmdMod.LOGGER.info("[craftcmd] furnace put {} x{} into {}", itemId, inserted, slot.id());
 		return inserted;
 	}
@@ -212,8 +160,7 @@ public final class FurnaceCommand {
 
 		FurnaceSlot slot = context.getArgument("slot", FurnaceSlot.class);
 		Minecraft client = source.getClient();
-		LocalPlayer player = client.player;
-		Inventory inventory = player.getInventory();
+		Inventory inventory = client.player.getInventory();
 		Component slotName = Component.translatable(slot.translationKey());
 		// Copy: the slot holds a live stack which is emptied by the clicks below.
 		ItemStack current = menu.getSlot(slot.menuSlot()).getItem().copy();
@@ -241,59 +188,24 @@ public final class FurnaceCommand {
 		}
 
 		int[] slots = MenuSlots.playerSlots(menu, inventory);
-		int excess = count - take;
+		int taken = MenuSlots.takeFromSlot(client, menu, slot.menuSlot(), take, inventory, slots);
 
-		click(client, menu, slot.menuSlot(), 0);
-
-		if (menu.getCarried().getCount() < take) {
-			// Should not happen; put everything back and report the failure.
-			MenuSlots.depositCarried(client, menu, inventory, slots);
+		if (taken <= 0) {
 			source.sendError(Component.translatable("craftcmd.furnace.error.empty_slot", slotName));
 			return 0;
 		}
 
-		if (excess == 0) {
-			MenuSlots.depositCarried(client, menu, inventory, slots);
-		} else if (take <= excess) {
-			// Take items one by one into a single inventory slot, then dump the rest back.
-			int destination = MenuSlots.findDestination(inventory, current, take);
-
-			if (destination >= 0 && slots[destination] >= 0) {
-				for (int i = 0; i < take; i++) {
-					click(client, menu, slots[destination], 1);
-				}
-
-				click(client, menu, slot.menuSlot(), 0);
-			} else {
-				putBackExcess(client, menu, slot, excess);
-				MenuSlots.depositCarried(client, menu, inventory, slots);
-			}
-		} else {
-			putBackExcess(client, menu, slot, excess);
-			MenuSlots.depositCarried(client, menu, inventory, slots);
-		}
-
 		if (wholeStack) {
 			source.sendFeedback(
-					Component.translatable("craftcmd.furnace.get.whole", current.getHoverName(), take, slotName));
+					Component.translatable("craftcmd.furnace.get.whole", current.getHoverName(), taken, slotName));
 		} else {
 			source.sendFeedback(
-					Component.translatable("craftcmd.furnace.get.done", current.getHoverName(), take, slotName));
+					Component.translatable("craftcmd.furnace.get.done", current.getHoverName(), taken, slotName));
 		}
 
-		CraftCmdMod.LOGGER.info("[craftcmd] furnace get {} x{} from {}", current.getItem(), take, slot.id());
-		return take;
+		CraftCmdMod.LOGGER.info("[craftcmd] furnace get {} x{} from {}", current.getItem(), taken, slot.id());
+		return taken;
 	}
-
-	private static void putBackExcess(Minecraft client, AbstractFurnaceMenu menu, FurnaceSlot slot, int excess) {
-		for (int i = 0; i < excess; i++) {
-			click(client, menu, slot.menuSlot(), 1);
-		}
-	}
-
-	// ------------------------------------------------------------------
-	// helpers
-	// ------------------------------------------------------------------
 
 	private static AbstractFurnaceMenu furnaceMenu(FabricClientCommandSource source) {
 		Minecraft client = source.getClient();
@@ -309,9 +221,5 @@ public final class FurnaceCommand {
 		}
 
 		return menu;
-	}
-
-	private static void click(Minecraft client, AbstractContainerMenu menu, int slot, int button) {
-		client.gameMode.handleContainerInput(menu.containerId, slot, button, ContainerInput.PICKUP, client.player);
 	}
 }
