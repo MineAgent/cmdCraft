@@ -30,6 +30,7 @@ public final class CraftCmdMod implements ClientModInitializer {
 			FurnaceCommand.register(dispatcher);
 			ChestCommand.register(dispatcher);
 			InventoryCommand.register(dispatcher);
+			RotCommand.register(dispatcher);
 		});
 		ClientTickEvents.END_CLIENT_TICK.register(CraftJob::tick);
 	}

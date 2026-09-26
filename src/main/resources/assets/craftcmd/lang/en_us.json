@@ -42,5 +42,7 @@
 	"craftcmd.chest.error.full": "Not enough room in the chest for %s ×%s (only %s would fit).",
 	"craftcmd.chest.error.empty": "The chest has no %s.",
 	"craftcmd.chest.error.not_enough_stored": "The chest holds only %s ×%s, but %s are needed.",
-	"craftcmd.chest.error.no_inventory_space": "Not enough inventory space for %s ×%s."
+	"craftcmd.chest.error.no_inventory_space": "Not enough inventory space for %s ×%s.",
+	"craftcmd.rot.done": "Turned %s: %s (was %s)",
+	"craftcmd.rot.error.invalid_value": "Invalid angle (use e.g. 90, ~0.1 or ~-20)"
 }

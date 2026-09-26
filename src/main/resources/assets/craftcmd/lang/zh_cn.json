@@ -42,5 +42,7 @@
 	"craftcmd.chest.error.full": "箱子空间不足：放不下 %s ×%s（最多还能放 %s 个）。",
 	"craftcmd.chest.error.empty": "箱子里没有 %s。",
 	"craftcmd.chest.error.not_enough_stored": "箱子里只有 %s ×%s，需要 %s 个。",
-	"craftcmd.chest.error.no_inventory_space": "背包空间不足：无法容纳 %s ×%s。"
+	"craftcmd.chest.error.no_inventory_space": "背包空间不足：无法容纳 %s ×%s。",
+	"craftcmd.rot.done": "已转向 %s：%s（原 %s）",
+	"craftcmd.rot.error.invalid_value": "无效的角度值（可用：90、~0.1、~-20）"
 }

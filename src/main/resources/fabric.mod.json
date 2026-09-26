@@ -3,7 +3,7 @@
 	"id": "craftcmd",
 	"version": "${version}",
 	"name": "Craft Command",
-	"description": "Client side /craft command: craft an item from the items you already carry, using the vanilla crafting grid (2x2 from the inventory, 3x3 when a crafting table is open).",
+	"description": "Client side container and view commands: /craft, /inventory, /furnace, /chest and /rot. Everything is driven through the vanilla screens and packets, so no server side mod is needed.",
 	"authors": [
 		"MineAgent"
 	],

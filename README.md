@@ -2,7 +2,7 @@
 
 [![License: LGPL-3.0-only](https://img.shields.io/badge/license-LGPL--3.0--only-blue.svg)](LICENSE)
 
-A **client side** Fabric mod for **Minecraft 26.2** that adds four container commands:
+A **client side** Fabric mod for **Minecraft 26.2** that adds five commands:
 
 | Command | What it does |
 |---|---|
@@ -10,6 +10,7 @@ A **client side** Fabric mod for **Minecraft 26.2** that adds four container com
 | `/inventory <item id> [1-9]` | swaps a stack from the inventory with a hotbar slot |
 | `/furnace put\|get <raw\|fuel\|product> <item id> [amount]` | moves items in the furnace screen you have open |
 | `/chest put\|get <item id> [amount]` | moves items in the chest screen you have open |
+| `/rot <yaw\|pitch> <angle>` | turns the player's view (this is what AdvancedInfoFetcher's `/info` reports) |
 
 Everything is done by sending ordinary `ServerboundContainerClickPacket`s — exactly what a player clicking
 the slots would send — so the server stays fully authoritative and **no server side mod is needed**.
@@ -110,6 +111,37 @@ Selection rule: items are matched as **identical stacks** (same item id *and* sa
 or damaged stack is never mixed with a plain one). The template is the first matching stack: for `put` the
 first one in your inventory, for `get` the first one in the chest.
 
+## `/rot`
+
+```
+/rot <yaw|pitch> <angle>
+```
+
+```
+/rot yaw 90          # set the yaw to exactly 90°
+/rot yaw ~0.1        # turn 0.1° from the current yaw
+/rot yaw ~-20        # turn 20° back from the current yaw
+/rot pitch 30        # look 30° down
+/rot pitch ~         # keep the current pitch (offset 0)
+```
+
+`angle` uses vanilla's `~` notation:
+
+| Form | Meaning |
+|---|---|
+| `90` | set the angle to 90° |
+| `~0.1` | add 0.1° to the current angle |
+| `~-20` | subtract 20° from the current angle |
+| `~` | keep the current angle |
+
+The command writes only the client player's rotation fields — the same ones the mouse look writes — so the
+client's ordinary movement packets sync it to the server on the next tick and no server side mod is needed.
+It is exactly what AdvancedInfoFetcher's `GET :3421/info` reports as `yaw` / `pitch`, which makes `/rot` the
+precise replacement for `mouse move` when an exact heading is needed (playbook §13).
+
+Yaw is stored as given (it may exceed ±180); pitch is clamped to vanilla's `-90..90`. The applied value is
+echoed in chat (`已转向 yaw：90.0（原 0.0）`).
+
 ## Requirements
 
 | | |
@@ -126,7 +158,7 @@ Minecraft 26.2 is unobfuscated and Fabric now uses Mojang's names, so the projec
 
 ```bash
 ./gradlew build
-# -> build/libs/craftcmd-1.2.0.jar
+# -> build/libs/craftcmd-1.3.0.jar
 ```
 
 ## Error messages
@@ -171,6 +203,15 @@ Minecraft 26.2 is unobfuscated and Fabric now uses Mojang's names, so the projec
 | the chest holds the same item with different components (renamed/damaged) | those stacks are ignored, they are never merged |
 | cursor holding an item | error |
 | amount outside 1–6400 | brigadier error |
+
+`/rot`:
+
+| Situation | Result |
+|---|---|
+| not in a world (still on a menu) | error (`尚未连接到世界`) |
+| angle is not a number (e.g. `~abc`) | brigadier error (`无效的角度值`) |
+| `pitch` outside -90..90 | clamped to -90 / 90, the applied value is reported |
+| `yaw` outside ±180 | stored as given, no wrapping |
 
 ## Limitations
 
