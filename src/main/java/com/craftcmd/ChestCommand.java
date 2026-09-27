@@ -5,8 +5,8 @@
 
 package com.craftcmd;
 
-import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
@@ -20,7 +20,8 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * Registers {@code /chest put|get <item id> [amount]} for the chest screen that is currently open.
+ * Builds the {@code /cmdop chest put|get <item id> [amount]} subcommand for the chest screen that is
+ * currently open.
  *
  * <p>Any {@link ChestMenu} works, which covers chests, trapped chests, double chests and barrels. Items are
  * only ever matched as identical stacks (same item, same components) and both directions are validated up
@@ -33,27 +34,27 @@ public final class ChestCommand {
 	private ChestCommand() {
 	}
 
-	public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
-		dispatcher.register(
-				ClientCommands.literal("chest")
-						.then(ClientCommands.literal("put")
-								.then(ClientCommands.argument("item", ItemIdArgumentType.INSTANCE)
-										.executes(context -> put(context, 1))
-										.then(ClientCommands
-												.argument("amount", IntegerArgumentType.integer(1, MAX_AMOUNT))
-												.executes(context -> put(context,
-														IntegerArgumentType.getInteger(context, "amount"))))))
-						.then(ClientCommands.literal("get")
-								.then(ClientCommands.argument("item", ItemIdArgumentType.INSTANCE)
-										.executes(context -> get(context, 1))
-										.then(ClientCommands
-												.argument("amount", IntegerArgumentType.integer(1, MAX_AMOUNT))
-												.executes(context -> get(context,
-														IntegerArgumentType.getInteger(context, "amount")))))));
+	/** @return the {@code chest} node, to be attached below {@code /cmdop} */
+	public static LiteralArgumentBuilder<FabricClientCommandSource> command() {
+		return ClientCommands.literal("chest")
+				.then(ClientCommands.literal("put")
+						.then(ClientCommands.argument("item", ItemIdArgumentType.INSTANCE)
+								.executes(context -> put(context, 1))
+								.then(ClientCommands
+										.argument("amount", IntegerArgumentType.integer(1, MAX_AMOUNT))
+										.executes(context -> put(context,
+												IntegerArgumentType.getInteger(context, "amount"))))))
+				.then(ClientCommands.literal("get")
+						.then(ClientCommands.argument("item", ItemIdArgumentType.INSTANCE)
+								.executes(context -> get(context, 1))
+								.then(ClientCommands
+										.argument("amount", IntegerArgumentType.integer(1, MAX_AMOUNT))
+										.executes(context -> get(context,
+												IntegerArgumentType.getInteger(context, "amount"))))));
 	}
 
 	// ------------------------------------------------------------------
-	// /chest put <item> [amount]
+	// /cmdop chest put <item> [amount]
 	// ------------------------------------------------------------------
 
 	private static int put(CommandContext<FabricClientCommandSource> context, int amount) {
@@ -154,7 +155,7 @@ public final class ChestCommand {
 	}
 
 	// ------------------------------------------------------------------
-	// /chest get <item> [amount]
+	// /cmdop chest get <item> [amount]
 	// ------------------------------------------------------------------
 
 	private static int get(CommandContext<FabricClientCommandSource> context, int amount) {

@@ -1,7 +1,7 @@
 {
 	"craftcmd.msg.started": "Crafting %s ×%s…",
 	"craftcmd.msg.done": "Crafted %s ×%s",
-	"craftcmd.error.busy": "Another /craft job is already running.",
+	"craftcmd.error.busy": "Another /cmdop craft job is already running.",
 	"craftcmd.error.not_ready": "Not connected to a world.",
 	"craftcmd.error.no_menu": "Open your inventory or a crafting table first.",
 	"craftcmd.error.cursor": "Put down the item held on your cursor first.",
@@ -43,6 +43,6 @@
 	"craftcmd.chest.error.empty": "The chest has no %s.",
 	"craftcmd.chest.error.not_enough_stored": "The chest holds only %s ×%s, but %s are needed.",
 	"craftcmd.chest.error.no_inventory_space": "Not enough inventory space for %s ×%s.",
-	"craftcmd.rot.done": "Turned %s: %s (was %s)",
-	"craftcmd.rot.error.invalid_value": "Invalid angle (use e.g. 90, ~0.1 or ~-20)"
+	"craftcmd.look.done": "Turned %s: %s (was %s)",
+	"craftcmd.look.error.invalid_value": "Invalid angle (use e.g. 90, ~0.1 or ~-20)"
 }

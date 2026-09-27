@@ -5,8 +5,8 @@
 
 package com.craftcmd;
 
-import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
@@ -22,7 +22,8 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * Registers {@code /inventory <item id> [1-9]}: swaps a stack from the inventory with a hotbar slot.
+ * Builds the {@code /cmdop inventory <item id> [1-9]} subcommand: swaps a stack from the inventory with a
+ * hotbar slot.
  *
  * <p>The swap itself is a single vanilla "number key" click ({@link ContainerInput#SWAP} with the hotbar
  * index as the button), so it is one packet and the server sees exactly what a player pressing 1-9 while
@@ -32,15 +33,15 @@ public final class InventoryCommand {
 	private InventoryCommand() {
 	}
 
-	public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
-		dispatcher.register(
-				ClientCommands.literal("inventory")
-						.then(ClientCommands.argument("item", ItemIdArgumentType.INSTANCE)
-								.executes(context -> swap(context, 1))
-								.then(ClientCommands
-										.argument("slot", IntegerArgumentType.integer(1, MenuSlots.HOTBAR_SLOTS))
-										.executes(context -> swap(context,
-												IntegerArgumentType.getInteger(context, "slot"))))));
+	/** @return the {@code inventory} node, to be attached below {@code /cmdop} */
+	public static LiteralArgumentBuilder<FabricClientCommandSource> command() {
+		return ClientCommands.literal("inventory")
+				.then(ClientCommands.argument("item", ItemIdArgumentType.INSTANCE)
+						.executes(context -> swap(context, 1))
+						.then(ClientCommands
+								.argument("slot", IntegerArgumentType.integer(1, MenuSlots.HOTBAR_SLOTS))
+								.executes(context -> swap(context,
+										IntegerArgumentType.getInteger(context, "slot")))));
 	}
 
 	private static int swap(CommandContext<FabricClientCommandSource> context, int hotbarSlot) {

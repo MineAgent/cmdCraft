@@ -5,8 +5,8 @@
 
 package com.craftcmd;
 
-import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
@@ -16,7 +16,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.inventory.AbstractCraftingMenu;
 import net.minecraft.world.inventory.Slot;
 
-/** Registers {@code /craft <item id> [amount]}. */
+/** Builds the {@code /cmdop craft <item id> [amount]} subcommand. */
 public final class CraftCommand {
 	/** Upper bound for the amount argument; 36 slots of 64 items. */
 	public static final int MAX_AMOUNT = 2304;
@@ -24,14 +24,14 @@ public final class CraftCommand {
 	private CraftCommand() {
 	}
 
-	public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
-		dispatcher.register(
-				ClientCommands.literal("craft")
-						.then(ClientCommands.argument("item", ItemIdArgumentType.INSTANCE)
-								.executes(context -> execute(context, 1))
-								.then(ClientCommands.argument("amount", IntegerArgumentType.integer(1, MAX_AMOUNT))
-										.executes(context -> execute(context,
-												IntegerArgumentType.getInteger(context, "amount"))))));
+	/** @return the {@code craft} node, to be attached below {@code /cmdop} */
+	public static LiteralArgumentBuilder<FabricClientCommandSource> command() {
+		return ClientCommands.literal("craft")
+				.then(ClientCommands.argument("item", ItemIdArgumentType.INSTANCE)
+						.executes(context -> execute(context, 1))
+						.then(ClientCommands.argument("amount", IntegerArgumentType.integer(1, MAX_AMOUNT))
+								.executes(context -> execute(context,
+										IntegerArgumentType.getInteger(context, "amount")))));
 	}
 
 	private static int execute(CommandContext<FabricClientCommandSource> context, int amount) {

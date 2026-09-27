@@ -2,30 +2,32 @@
 
 [![License: LGPL-3.0-only](https://img.shields.io/badge/license-LGPL--3.0--only-blue.svg)](LICENSE)
 
-A **client side** Fabric mod for **Minecraft 26.2** that adds five commands:
+A **client side** Fabric mod for **Minecraft 26.2** that adds five commands, all below `/cmdop`:
 
 | Command | What it does |
 |---|---|
-| `/craft <item id> [amount]` | crafts from the materials you carry, using the vanilla crafting grid |
-| `/inventory <item id> [1-9]` | swaps a stack from the inventory with a hotbar slot |
-| `/furnace put\|get <raw\|fuel\|product> <item id> [amount]` | moves items in the furnace screen you have open |
-| `/chest put\|get <item id> [amount]` | moves items in the chest screen you have open |
-| `/rot <yaw\|pitch> <angle>` | turns the player's view (this is what AdvancedInfoFetcher's `/info` reports) |
+| `/cmdop craft <item id> [amount]` | crafts from the materials you carry, using the vanilla crafting grid |
+| `/cmdop inventory <item id> [1-9]` | swaps a stack from the inventory with a hotbar slot |
+| `/cmdop furnace put\|get <raw\|fuel\|product> <item id> [amount]` | moves items in the furnace screen you have open |
+| `/cmdop chest put\|get <item id> [amount]` | moves items in the chest screen you have open |
+| `/cmdop look <yaw\|pitch> <angle>` | turns where the player is looking (this is what AdvancedInfoFetcher's `/info` reports) |
 
-Everything is done by sending ordinary `ServerboundContainerClickPacket`s — exactly what a player clicking
-the slots would send — so the server stays fully authoritative and **no server side mod is needed**.
+Everything lives under the single `/cmdop` root so the command list stays short; there are **no**
+top-level `/craft`-style aliases. Everything is done by sending ordinary packets — container clicks and
+movement packets, exactly what a player clicking the slots or moving the mouse would send — so the server
+stays fully authoritative and **no server side mod is needed**.
 
-## `/craft`
-
-```
-/craft <item id> [amount]
-```
+## `/cmdop craft`
 
 ```
-/craft minecraft:crafting_table          # consumes 4 planks, gives 1 crafting table
-/craft minecraft:crafting_table 2        # needs 8 planks, otherwise it fails without crafting anything
-/craft stick 16                          # 2 planks -> 4 sticks per craft, so 4 crafts
-/craft oak_planks 8                      # 1 log -> 4 planks, so 2 crafts
+/cmdop craft <item id> [amount]
+```
+
+```
+/cmdop craft minecraft:crafting_table          # consumes 4 planks, gives 1 crafting table
+/cmdop craft minecraft:crafting_table 2        # needs 8 planks, otherwise it fails without crafting anything
+/cmdop craft stick 16                          # 2 planks -> 4 sticks per craft, so 4 crafts
+/cmdop craft oak_planks 8                      # 1 log -> 4 planks, so 2 crafts
 ```
 
 `amount` is the number of result items you want. The mod rounds up to whole crafts (a recipe that yields
@@ -33,8 +35,8 @@ the slots would send — so the server stays fully authoritative and **no server
 
 How it works:
 
-1. `/craft` resolves the argument as an **item id**, looks the item up in the client registry and fails
-   immediately if the id does not exist.
+1. `/cmdop craft` resolves the argument as an **item id**, looks the item up in the client registry and
+   fails immediately if the id does not exist.
 2. It searches the **client recipe book** for a crafting recipe whose result is that item.
 3. It resolves the recipe layout and simulates the whole operation against a copy of your inventory: are
    there enough ingredients for every craft, is there room for all results, does the recipe fit into the
@@ -44,17 +46,17 @@ How it works:
    on the output slot). One click on the output crafts as often as the grid allows, so the grid is always
    stocked with exactly one craft worth of items and the count stays predictable.
 
-The job runs in the background, one step per client tick; only one `/craft` runs at a time.
+The job runs in the background, one step per client tick; only one craft runs at a time.
 
-## `/inventory`
-
-```
-/inventory <item id> [1-9]
-```
+## `/cmdop inventory`
 
 ```
-/inventory minecraft:torch        # bring torches to hotbar slot 1
-/inventory minecraft:sword 3      # bring a sword to hotbar slot 3
+/cmdop inventory <item id> [1-9]
+```
+
+```
+/cmdop inventory minecraft:torch        # bring torches to hotbar slot 1
+/cmdop inventory minecraft:sword 3      # bring a sword to hotbar slot 3
 ```
 
 Swaps the chosen item with the hotbar slot (default 1), using the vanilla "number key" swap — one packet,
@@ -64,19 +66,19 @@ Selection rule: the **first matching stack** is used, searching the 27 main inve
 to bottom right) and then the rest of the hotbar, skipping the target slot itself. If the item is already
 in the target slot and nowhere else, the command says so and sends no click at all.
 
-## `/furnace`
+## `/cmdop furnace`
 
 Open a furnace (or blast furnace / smoker — they share the same menu) and keep the screen open:
 
 ```
-/furnace put <raw|fuel> <item id> [amount]   # move items from your inventory into the furnace
-/furnace get <raw|fuel|product> [amount]     # move items from the furnace into your inventory
+/cmdop furnace put <raw|fuel> <item id> [amount]   # move items from your inventory into the furnace
+/cmdop furnace get <raw|fuel|product> [amount]     # move items from the furnace into your inventory
 ```
 
 ```
-/furnace put raw minecraft:raw_iron 8
-/furnace put fuel minecraft:coal 4
-/furnace get product 1
+/cmdop furnace put raw minecraft:raw_iron 8
+/cmdop furnace put fuel minecraft:coal 4
+/cmdop furnace get product 1
 ```
 
 `amount` defaults to `1`. `get raw` / `get fuel` can split stacks to any amount; asking for more than the
@@ -89,19 +91,19 @@ asking for fewer items than the output holds takes the whole stack and says so
 A furnace block entity is **not** synchronised to the client, so the commands need the furnace screen to
 be open — that is also the only way the server accepts slot clicks.
 
-## `/chest`
+## `/cmdop chest`
 
 Open a chest (chest, trapped chest, double chest or barrel — anything using `ChestMenu`) and keep the
 screen open:
 
 ```
-/chest put <item id> [amount]    # move items from your inventory into the chest
-/chest get <item id> [amount]    # move items from the chest into your inventory
+/cmdop chest put <item id> [amount]    # move items from your inventory into the chest
+/cmdop chest get <item id> [amount]    # move items from the chest into your inventory
 ```
 
 ```
-/chest put minecraft:cobblestone 64
-/chest get minecraft:iron_ingot 16
+/cmdop chest put minecraft:cobblestone 64
+/cmdop chest get minecraft:iron_ingot 16
 ```
 
 `amount` defaults to `1`. `put` merges into matching stacks first (lowest slot first) and then uses empty
@@ -111,18 +113,18 @@ Selection rule: items are matched as **identical stacks** (same item id *and* sa
 or damaged stack is never mixed with a plain one). The template is the first matching stack: for `put` the
 first one in your inventory, for `get` the first one in the chest.
 
-## `/rot`
+## `/cmdop look`
 
 ```
-/rot <yaw|pitch> <angle>
+/cmdop look <yaw|pitch> <angle>
 ```
 
 ```
-/rot yaw 90          # set the yaw to exactly 90°
-/rot yaw ~0.1        # turn 0.1° from the current yaw
-/rot yaw ~-20        # turn 20° back from the current yaw
-/rot pitch 30        # look 30° down
-/rot pitch ~         # keep the current pitch (offset 0)
+/cmdop look yaw 90          # set the yaw to exactly 90°
+/cmdop look yaw ~0.1        # turn 0.1° from the current yaw
+/cmdop look yaw ~-20        # turn 20° back from the current yaw
+/cmdop look pitch 30        # look 30° down
+/cmdop look pitch ~         # keep the current pitch (offset 0)
 ```
 
 `angle` uses vanilla's `~` notation:
@@ -136,8 +138,8 @@ first one in your inventory, for `get` the first one in the chest.
 
 The command writes only the client player's rotation fields — the same ones the mouse look writes — so the
 client's ordinary movement packets sync it to the server on the next tick and no server side mod is needed.
-It is exactly what AdvancedInfoFetcher's `GET :3421/info` reports as `yaw` / `pitch`, which makes `/rot` the
-precise replacement for `mouse move` when an exact heading is needed (playbook §13).
+It is exactly what AdvancedInfoFetcher's `GET :3421/info` reports as `yaw` / `pitch`, which makes
+`/cmdop look` the precise replacement for `mouse move` when an exact heading is needed (playbook §13).
 
 Yaw is stored as given (it may exceed ±180); pitch is clamped to vanilla's `-90..90`. The applied value is
 echoed in chat (`已转向 yaw：90.0（原 0.0）`).
@@ -158,16 +160,16 @@ Minecraft 26.2 is unobfuscated and Fabric now uses Mojang's names, so the projec
 
 ```bash
 ./gradlew build
-# -> build/libs/craftcmd-1.3.0.jar
+# -> build/libs/craftcmd-1.3.1.jar
 ```
 
 ## Error messages
 
-`/craft` and `/furnace`:
+`/cmdop craft` and `/cmdop furnace`:
 
 | Situation | Result |
 |---|---|
-| amount bigger than the materials allow (e.g. 6 planks + `/craft minecraft:crafting_table 2`) | error, no crafting at all |
+| amount bigger than the materials allow (e.g. 6 planks + `/cmdop craft minecraft:crafting_table 2`) | error, no crafting at all |
 | inventory cannot hold all results | error, no crafting at all |
 | unknown item id | error |
 | recipe needs a 3×3 grid while only the inventory is open | error (`请先打开工作台`) |
@@ -177,7 +179,7 @@ Minecraft 26.2 is unobfuscated and Fabric now uses Mojang's names, so the projec
 | `put`: slot already holds another item / item cannot go into that slot / stack limit reached / not enough carried | error, nothing moves |
 | `get`: slot empty / inventory cannot hold the items | error, nothing moves |
 
-`/inventory`:
+`/cmdop inventory`:
 
 | Situation | Result |
 |---|---|
@@ -188,7 +190,7 @@ Minecraft 26.2 is unobfuscated and Fabric now uses Mojang's names, so the projec
 | slot argument outside 1–9 | brigadier error |
 | cursor holding an item | error |
 
-`/chest`:
+`/cmdop chest`:
 
 | Situation | Result |
 |---|---|
@@ -204,7 +206,7 @@ Minecraft 26.2 is unobfuscated and Fabric now uses Mojang's names, so the projec
 | cursor holding an item | error |
 | amount outside 1–6400 | brigadier error |
 
-`/rot`:
+`/cmdop look`:
 
 | Situation | Result |
 |---|---|
@@ -221,10 +223,11 @@ Minecraft 26.2 is unobfuscated and Fabric now uses Mojang's names, so the projec
 * 3×3 recipes need a crafting table GUI to be open, because a client cannot open one by itself.
 * Recipes that are not placeable in a grid (special recipes such as fireworks, map cloning, …) are rejected
   with a clear error; they are never sent to the client recipe book anyway.
-* The item id in `/craft` is the id of the **result item**, not of the recipe file. Several recipes can
+* The item id in `/cmdop craft` is the id of the **result item**, not of the recipe file. Several recipes can
   produce the same item; the cheapest one that your materials support is chosen.
-* `/furnace` and `/chest` need their screen to be open, because the client does not know the contents of a
-  closed block entity and the server only accepts slot clicks for the container the player has open.
+* `/cmdop furnace` and `/cmdop chest` need their screen to be open, because the client does not know the
+  contents of a closed block entity and the server only accepts slot clicks for the container the player has
+  open.
 * A strict server side anti-cheat could dislike the burst of click packets a large command produces
   (vanilla itself has no click rate limit).
 

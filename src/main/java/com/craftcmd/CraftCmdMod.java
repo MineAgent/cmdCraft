@@ -7,6 +7,7 @@ package com.craftcmd;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,10 +15,11 @@ import org.slf4j.LoggerFactory;
 /**
  * Entry point of the (client only) mod.
  *
- * <p>All the work happens on the client: {@code /craft} looks the recipe up in the client side recipe
- * book, {@code /furnace} and {@code /chest} drive the container screen that is open and {@code /inventory}
- * swaps hotbar slots, all through regular {@code ServerboundContainerClickPacket}s. No server side
- * component and no mixin is required, which means the mod also works on unmodified servers.
+ * <p>Every command lives below {@code /cmdop}: {@code /cmdop craft} looks the recipe up in the client side
+ * recipe book, {@code /cmdop furnace} and {@code /cmdop chest} drive the container screen that is open,
+ * {@code /cmdop inventory} swaps hotbar slots and {@code /cmdop look} turns the view. All of it goes
+ * through ordinary player actions (container clicks, movement packets), so no server side component and no
+ * mixin is required and the mod also works on unmodified servers.
  */
 public final class CraftCmdMod implements ClientModInitializer {
 	public static final String MOD_ID = "craftcmd";
@@ -25,13 +27,13 @@ public final class CraftCmdMod implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
-		ClientCommandRegistrationCallback.EVENT.register((dispatcher, buildContext) -> {
-			CraftCommand.register(dispatcher);
-			FurnaceCommand.register(dispatcher);
-			ChestCommand.register(dispatcher);
-			InventoryCommand.register(dispatcher);
-			RotCommand.register(dispatcher);
-		});
+		ClientCommandRegistrationCallback.EVENT.register((dispatcher, buildContext) -> dispatcher.register(
+				ClientCommands.literal("cmdop")
+						.then(CraftCommand.command())
+						.then(InventoryCommand.command())
+						.then(FurnaceCommand.command())
+						.then(ChestCommand.command())
+						.then(LookCommand.command())));
 		ClientTickEvents.END_CLIENT_TICK.register(CraftJob::tick);
 	}
 }

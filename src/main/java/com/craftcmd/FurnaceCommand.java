@@ -5,8 +5,8 @@
 
 package com.craftcmd;
 
-import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
@@ -21,7 +21,8 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * Registers the furnace commands and drives the open furnace through ordinary container clicks.
+ * Builds the {@code /cmdop furnace put|get ...} subcommand and drives the open furnace through ordinary
+ * container clicks.
  *
  * <p>The commands work while a furnace screen is open (furnace, blast furnace or smoker — they all
  * share {@link AbstractFurnaceMenu}). A client cannot open a furnace by itself and it does not know
@@ -34,28 +35,28 @@ public final class FurnaceCommand {
 	private FurnaceCommand() {
 	}
 
-	public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
-		dispatcher.register(
-				ClientCommands.literal("furnace")
-						.then(ClientCommands.literal("put")
-								.then(ClientCommands.argument("slot", FurnaceSlotArgumentType.put())
-										.then(ClientCommands.argument("item", ItemIdArgumentType.INSTANCE)
-												.executes(context -> put(context, 1))
-												.then(ClientCommands
-														.argument("amount", IntegerArgumentType.integer(1, MAX_AMOUNT))
-														.executes(context -> put(context,
-																IntegerArgumentType.getInteger(context, "amount")))))))
-						.then(ClientCommands.literal("get")
-								.then(ClientCommands.argument("slot", FurnaceSlotArgumentType.get())
-										.executes(context -> get(context, 1))
+	/** @return the {@code furnace} node, to be attached below {@code /cmdop} */
+	public static LiteralArgumentBuilder<FabricClientCommandSource> command() {
+		return ClientCommands.literal("furnace")
+				.then(ClientCommands.literal("put")
+						.then(ClientCommands.argument("slot", FurnaceSlotArgumentType.put())
+								.then(ClientCommands.argument("item", ItemIdArgumentType.INSTANCE)
+										.executes(context -> put(context, 1))
 										.then(ClientCommands
 												.argument("amount", IntegerArgumentType.integer(1, MAX_AMOUNT))
-												.executes(context -> get(context,
-														IntegerArgumentType.getInteger(context, "amount")))))));
+												.executes(context -> put(context,
+														IntegerArgumentType.getInteger(context, "amount")))))))
+				.then(ClientCommands.literal("get")
+						.then(ClientCommands.argument("slot", FurnaceSlotArgumentType.get())
+								.executes(context -> get(context, 1))
+								.then(ClientCommands
+										.argument("amount", IntegerArgumentType.integer(1, MAX_AMOUNT))
+										.executes(context -> get(context,
+												IntegerArgumentType.getInteger(context, "amount"))))));
 	}
 
 	// ------------------------------------------------------------------
-	// /furnace put <raw|fuel> <item> [amount]
+	// /cmdop furnace put <raw|fuel> <item> [amount]
 	// ------------------------------------------------------------------
 
 	private static int put(CommandContext<FabricClientCommandSource> context, int amount) {
@@ -142,7 +143,7 @@ public final class FurnaceCommand {
 	}
 
 	// ------------------------------------------------------------------
-	// /furnace get <raw|fuel|product> [amount]
+	// /cmdop furnace get <raw|fuel|product> [amount]
 	// ------------------------------------------------------------------
 
 	private static int get(CommandContext<FabricClientCommandSource> context, int amount) {

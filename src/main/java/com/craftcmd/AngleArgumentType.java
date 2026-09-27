@@ -34,7 +34,7 @@ public final class AngleArgumentType implements ArgumentType<Angle> {
 	private static final List<String> EXAMPLES = List.of("~", "~0.1", "~-0.1", "0", "90", "-90", "180");
 
 	private static final SimpleCommandExceptionType ERROR_INVALID = new SimpleCommandExceptionType(
-			Component.translatable("craftcmd.rot.error.invalid_value"));
+			Component.translatable("craftcmd.look.error.invalid_value"));
 
 	private AngleArgumentType() {
 	}
