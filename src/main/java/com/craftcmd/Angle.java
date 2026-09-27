@@ -6,7 +6,7 @@
 package com.craftcmd;
 
 /**
- * One rotation instruction parsed from the {@code /cmdop look} command: either an absolute angle or an
+ * One rotation instruction parsed from the {@code look} command: either an absolute angle or an
  * offset relative to the current one.
  *
  * @param relative {@code true} for the {@code ~<offset>} form, {@code false} for a plain number

@@ -7,7 +7,6 @@ package com.craftcmd;
 
 import java.util.Arrays;
 import java.util.List;
-import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
@@ -23,7 +22,11 @@ import net.minecraft.world.item.ItemStack;
  * <p>The crafting grid is filled with real container clicks ({@code PICKUP}) and the output slot is
  * harvested with {@code QUICK_MOVE}, exactly like a player would do it. The server stays fully
  * authoritative: the only thing the mod relies on is that the client prediction of a click is applied
- * locally, which is what {@code MultiPlayerGameMode#handleContainerInput} does.
+ * locally, which is what {@code MultiPlayerGameMode#handleContainerInput} does.</p>
+ *
+ * <p>{@link #tick} is driven by {@code MinecraftMixin} (one step per client tick), and the job
+ * completes its {@link OpCommandSource} when it finishes or gives up so the waiting HTTP request can
+ * answer with the real outcome.</p>
  */
 public final class CraftJob {
 	/** How many ticks we wait for the server to (re)compute the crafting result. */
@@ -33,7 +36,7 @@ public final class CraftJob {
 
 	private final Minecraft client;
 	private final CraftPlan plan;
-	private final FabricClientCommandSource source;
+	private final OpCommandSource source;
 	private final AbstractCraftingMenu menu;
 	private final int containerId;
 	private final int resultSlot;
@@ -43,7 +46,7 @@ public final class CraftJob {
 	private int resultWait;
 	private int deadline;
 
-	private CraftJob(Minecraft client, CraftPlan plan, FabricClientCommandSource source, AbstractCraftingMenu menu) {
+	private CraftJob(Minecraft client, CraftPlan plan, OpCommandSource source, AbstractCraftingMenu menu) {
 		this.client = client;
 		this.plan = plan;
 		this.source = source;
@@ -80,7 +83,7 @@ public final class CraftJob {
 		return active != null;
 	}
 
-	public static void start(Minecraft client, CraftPlan plan, FabricClientCommandSource source) {
+	public static void start(Minecraft client, CraftPlan plan, OpCommandSource source) {
 		active = new CraftJob(client, plan, source, (AbstractCraftingMenu) client.player.containerMenu);
 		CraftCmdMod.LOGGER.info("[craftcmd] start {} x{} ({} crafts, {} ingredients per craft)", plan.itemId(),
 				plan.totalResultCount(), plan.crafts(), plan.positions().size());
@@ -296,6 +299,7 @@ public final class CraftJob {
 				Component.translatable("craftcmd.msg.done", this.plan.result().getHoverName(), this.plan.totalResultCount()));
 		CraftCmdMod.LOGGER.info("[craftcmd] done {} x{}", this.plan.itemId(), this.plan.totalResultCount());
 		active = null;
+		this.source.complete();
 	}
 
 	private void abort(Component message) {
@@ -303,12 +307,14 @@ public final class CraftJob {
 		this.source.sendError(message);
 		CraftCmdMod.LOGGER.warn("[craftcmd] aborted: {}", message.getString());
 		active = null;
+		this.source.complete();
 	}
 
 	private void fail(Component message) {
 		this.source.sendError(message);
 		CraftCmdMod.LOGGER.warn("[craftcmd] failed: {}", message.getString());
 		active = null;
+		this.source.complete();
 	}
 
 	/** Puts the (unused) ingredients back into the inventory. */

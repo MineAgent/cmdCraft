@@ -7,14 +7,9 @@ package com.craftcmd;
 
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.arguments.ArgumentType;
-import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
-import com.mojang.brigadier.suggestion.Suggestions;
-import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
 
 /** Brigadier argument for one of the furnace slots ({@code raw}, {@code fuel}, {@code product}). */
@@ -50,10 +45,5 @@ public final class FurnaceSlotArgumentType implements ArgumentType<FurnaceSlot> 
 		}
 
 		throw ERROR_UNKNOWN.createWithContext(reader);
-	}
-
-	@Override
-	public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
-		return SharedSuggestionProvider.suggest(this.allowed.stream().map(FurnaceSlot::id).toList(), builder);
 	}
 }

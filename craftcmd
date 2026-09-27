@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# craftcmd - drive the Minecraft client's containers through MGHttpdProvider's /op endpoint.
+#
+#   ./craftcmd craft minecraft:crafting_table       craft from the materials you carry
+#   ./craftcmd craft stick 16                       ask for 16 sticks
+#   ./craftcmd inventory minecraft:torch 3          move torches to hotbar slot 3
+#   ./craftcmd furnace put raw minecraft:raw_iron 8 move items in the open furnace
+#   ./craftcmd furnace get product                  take the furnace output
+#   ./craftcmd chest put minecraft:cobblestone 64   move items in the open chest
+#   ./craftcmd chest get minecraft:iron_ingot 16    take items out of the open chest
+#   ./craftcmd look yaw 90                          turn to yaw 90
+#   ./craftcmd look pitch ~-20                      tilt 20 degrees up
+#   ./craftcmd help                                 full manual (GET /op/)
+#   ./craftcmd -f script.txt                        run every line of a file, one request per line
+#   ./craftcmd -r 'craft stick 4'                   raw body (one request)
+#
+# Environment:
+#   CRAFTCMD_URL   default http://127.0.0.1:3420/op
+set -euo pipefail
+
+URL="${CRAFTCMD_URL:-http://127.0.0.1:3420/op}"
+
+usage() {
+	sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'
+	exit "${1:-0}"
+}
+
+if [ $# -eq 0 ]; then
+	usage 1
+fi
+
+case "$1" in
+	-h | --help | help)
+		if [ "$1" = "help" ]; then
+			exec curl -sS "$URL/"
+		fi
+		usage 0
+		;;
+	-f | --file)
+		shift
+		[ $# -ge 1 ] || { echo "craftcmd: -f needs a file" >&2; exit 2; }
+		file="$1"
+		[ -f "$file" ] || { echo "craftcmd: no such file: $file" >&2; exit 2; }
+		# one request per non-empty line, so each line is executed in order
+		while IFS= read -r line || [ -n "$line" ]; do
+			[ -z "${line//[[:space:]]/}" ] && continue
+			case "$line" in \#*) continue ;; esac
+			printf '%s -> ' "$line"
+			curl -sS -X POST --data-binary "$line" "$URL/"
+		done < "$file"
+		;;
+	-r | --raw)
+		shift
+		[ $# -ge 1 ] || { echo "craftcmd: -r needs a body" >&2; exit 2; }
+		curl -sS -X POST --data-binary "$*" "$URL/"
+		;;
+	*)
+		curl -sS -X POST --data-binary "$*" "$URL/"
+		;;
+esac

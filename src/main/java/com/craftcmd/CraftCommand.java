@@ -7,16 +7,22 @@ package com.craftcmd;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
-import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.inventory.AbstractCraftingMenu;
 import net.minecraft.world.inventory.Slot;
 
-/** Builds the {@code /cmdop craft <item id> [amount]} subcommand. */
+/**
+ * Builds the {@code craft <item id> [amount]} command: crafts from the materials the player carries
+ * through the vanilla crafting grid.
+ *
+ * <p>The request only returns once the job is over: {@link CraftJob} keeps clicking on the following
+ * client ticks and completes the {@link OpCommandSource} when it is done, which is what lets
+ * {@code POST /op/} answer with the real outcome instead of "started".</p>
+ */
 public final class CraftCommand {
 	/** Upper bound for the amount argument; 36 slots of 64 items. */
 	public static final int MAX_AMOUNT = 2304;
@@ -24,19 +30,21 @@ public final class CraftCommand {
 	private CraftCommand() {
 	}
 
-	/** @return the {@code craft} node, to be attached below {@code /cmdop} */
-	public static LiteralArgumentBuilder<FabricClientCommandSource> command() {
-		return ClientCommands.literal("craft")
-				.then(ClientCommands.argument("item", ItemIdArgumentType.INSTANCE)
+	/** @return the {@code craft} node, registered at the dispatcher root */
+	public static LiteralArgumentBuilder<OpCommandSource> command() {
+		return LiteralArgumentBuilder.<OpCommandSource>literal("craft")
+				.then(RequiredArgumentBuilder
+						.<OpCommandSource, Identifier>argument("item", ItemIdArgumentType.INSTANCE)
 						.executes(context -> execute(context, 1))
-						.then(ClientCommands.argument("amount", IntegerArgumentType.integer(1, MAX_AMOUNT))
+						.then(RequiredArgumentBuilder
+								.<OpCommandSource, Integer>argument("amount", IntegerArgumentType.integer(1, MAX_AMOUNT))
 								.executes(context -> execute(context,
 										IntegerArgumentType.getInteger(context, "amount")))));
 	}
 
-	private static int execute(CommandContext<FabricClientCommandSource> context, int amount) {
-		FabricClientCommandSource source = context.getSource();
-		Minecraft client = source.getClient();
+	private static int execute(CommandContext<OpCommandSource> context, int amount) {
+		OpCommandSource source = context.getSource();
+		Minecraft client = Minecraft.getInstance();
 
 		if (CraftJob.isRunning()) {
 			source.sendError(Component.translatable("craftcmd.error.busy"));
@@ -77,8 +85,8 @@ public final class CraftCommand {
 		}
 
 		CraftJob.start(client, plan, source);
-		source.sendFeedback(Component.translatable("craftcmd.msg.started", plan.result().getHoverName(),
-				plan.totalResultCount()));
+		// The dispatcher must not complete this request: the job does, when it finishes or aborts.
+		source.expectAsync();
 		return 1;
 	}
 }

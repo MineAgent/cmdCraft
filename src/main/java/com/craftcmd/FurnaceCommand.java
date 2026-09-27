@@ -7,9 +7,8 @@ package com.craftcmd;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
-import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -21,7 +20,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * Builds the {@code /cmdop furnace put|get ...} subcommand and drives the open furnace through ordinary
+ * Builds the {@code furnace put|get ...} command and drives the open furnace through ordinary
  * container clicks.
  *
  * <p>The commands work while a furnace screen is open (furnace, blast furnace or smoker — they all
@@ -35,32 +34,37 @@ public final class FurnaceCommand {
 	private FurnaceCommand() {
 	}
 
-	/** @return the {@code furnace} node, to be attached below {@code /cmdop} */
-	public static LiteralArgumentBuilder<FabricClientCommandSource> command() {
-		return ClientCommands.literal("furnace")
-				.then(ClientCommands.literal("put")
-						.then(ClientCommands.argument("slot", FurnaceSlotArgumentType.put())
-								.then(ClientCommands.argument("item", ItemIdArgumentType.INSTANCE)
+	/** @return the {@code furnace} node, registered at the dispatcher root */
+	public static LiteralArgumentBuilder<OpCommandSource> command() {
+		return LiteralArgumentBuilder.<OpCommandSource>literal("furnace")
+				.then(LiteralArgumentBuilder.<OpCommandSource>literal("put")
+						.then(RequiredArgumentBuilder
+								.<OpCommandSource, FurnaceSlot>argument("slot", FurnaceSlotArgumentType.put())
+								.then(RequiredArgumentBuilder
+										.<OpCommandSource, Identifier>argument("item", ItemIdArgumentType.INSTANCE)
 										.executes(context -> put(context, 1))
-										.then(ClientCommands
-												.argument("amount", IntegerArgumentType.integer(1, MAX_AMOUNT))
+										.then(RequiredArgumentBuilder
+												.<OpCommandSource, Integer>argument("amount",
+														IntegerArgumentType.integer(1, MAX_AMOUNT))
 												.executes(context -> put(context,
 														IntegerArgumentType.getInteger(context, "amount")))))))
-				.then(ClientCommands.literal("get")
-						.then(ClientCommands.argument("slot", FurnaceSlotArgumentType.get())
+				.then(LiteralArgumentBuilder.<OpCommandSource>literal("get")
+						.then(RequiredArgumentBuilder
+								.<OpCommandSource, FurnaceSlot>argument("slot", FurnaceSlotArgumentType.get())
 								.executes(context -> get(context, 1))
-								.then(ClientCommands
-										.argument("amount", IntegerArgumentType.integer(1, MAX_AMOUNT))
+								.then(RequiredArgumentBuilder
+										.<OpCommandSource, Integer>argument("amount",
+												IntegerArgumentType.integer(1, MAX_AMOUNT))
 										.executes(context -> get(context,
 												IntegerArgumentType.getInteger(context, "amount"))))));
 	}
 
 	// ------------------------------------------------------------------
-	// /cmdop furnace put <raw|fuel> <item> [amount]
+	// furnace put <raw|fuel> <item> [amount]
 	// ------------------------------------------------------------------
 
-	private static int put(CommandContext<FabricClientCommandSource> context, int amount) {
-		FabricClientCommandSource source = context.getSource();
+	private static int put(CommandContext<OpCommandSource> context, int amount) {
+		OpCommandSource source = context.getSource();
 		AbstractFurnaceMenu menu = furnaceMenu(source);
 
 		if (menu == null) {
@@ -81,7 +85,7 @@ public final class FurnaceCommand {
 			return 0;
 		}
 
-		Minecraft client = source.getClient();
+		Minecraft client = Minecraft.getInstance();
 		Inventory inventory = client.player.getInventory();
 		Slot targetSlot = menu.getSlot(slot.menuSlot());
 		ItemStack target = targetSlot.getItem();
@@ -143,11 +147,11 @@ public final class FurnaceCommand {
 	}
 
 	// ------------------------------------------------------------------
-	// /cmdop furnace get <raw|fuel|product> [amount]
+	// furnace get <raw|fuel|product> [amount]
 	// ------------------------------------------------------------------
 
-	private static int get(CommandContext<FabricClientCommandSource> context, int amount) {
-		FabricClientCommandSource source = context.getSource();
+	private static int get(CommandContext<OpCommandSource> context, int amount) {
+		OpCommandSource source = context.getSource();
 		AbstractFurnaceMenu menu = furnaceMenu(source);
 
 		if (menu == null) {
@@ -160,7 +164,7 @@ public final class FurnaceCommand {
 		}
 
 		FurnaceSlot slot = context.getArgument("slot", FurnaceSlot.class);
-		Minecraft client = source.getClient();
+		Minecraft client = Minecraft.getInstance();
 		Inventory inventory = client.player.getInventory();
 		Component slotName = Component.translatable(slot.translationKey());
 		// Copy: the slot holds a live stack which is emptied by the clicks below.
@@ -208,8 +212,8 @@ public final class FurnaceCommand {
 		return taken;
 	}
 
-	private static AbstractFurnaceMenu furnaceMenu(FabricClientCommandSource source) {
-		Minecraft client = source.getClient();
+	private static AbstractFurnaceMenu furnaceMenu(OpCommandSource source) {
+		Minecraft client = Minecraft.getInstance();
 
 		if (client.player == null || client.level == null || client.gameMode == null) {
 			source.sendError(Component.translatable("craftcmd.error.not_ready"));

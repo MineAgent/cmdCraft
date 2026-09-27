@@ -8,15 +8,15 @@ package com.craftcmd;
 import java.util.List;
 import net.minecraft.world.inventory.AbstractFurnaceMenu;
 
-/** The three furnace slots addressable from the {@code /cmdop furnace} command. */
+/** The three furnace slots addressable from the {@code furnace} command. */
 public enum FurnaceSlot {
 	RAW(AbstractFurnaceMenu.INGREDIENT_SLOT, "raw"),
 	FUEL(AbstractFurnaceMenu.FUEL_SLOT, "fuel"),
 	PRODUCT(AbstractFurnaceMenu.RESULT_SLOT, "product");
 
-	/** Slots {@code /cmdop furnace put} accepts. */
+	/** Slots {@code furnace put} accepts. */
 	public static final List<FurnaceSlot> PUT_SLOTS = List.of(RAW, FUEL);
-	/** Slots {@code /cmdop furnace get} accepts. */
+	/** Slots {@code furnace get} accepts. */
 	public static final List<FurnaceSlot> GET_SLOTS = List.of(RAW, FUEL, PRODUCT);
 
 	private final int menuSlot;

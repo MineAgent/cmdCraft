@@ -7,9 +7,8 @@ package com.craftcmd;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
-import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -22,7 +21,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * Builds the {@code /cmdop inventory <item id> [1-9]} subcommand: swaps a stack from the inventory with a
+ * Builds the {@code inventory <item id> [1-9]} command: swaps a stack from the inventory with a
  * hotbar slot.
  *
  * <p>The swap itself is a single vanilla "number key" click ({@link ContainerInput#SWAP} with the hotbar
@@ -33,20 +32,22 @@ public final class InventoryCommand {
 	private InventoryCommand() {
 	}
 
-	/** @return the {@code inventory} node, to be attached below {@code /cmdop} */
-	public static LiteralArgumentBuilder<FabricClientCommandSource> command() {
-		return ClientCommands.literal("inventory")
-				.then(ClientCommands.argument("item", ItemIdArgumentType.INSTANCE)
+	/** @return the {@code inventory} node, registered at the dispatcher root */
+	public static LiteralArgumentBuilder<OpCommandSource> command() {
+		return LiteralArgumentBuilder.<OpCommandSource>literal("inventory")
+				.then(RequiredArgumentBuilder
+						.<OpCommandSource, Identifier>argument("item", ItemIdArgumentType.INSTANCE)
 						.executes(context -> swap(context, 1))
-						.then(ClientCommands
-								.argument("slot", IntegerArgumentType.integer(1, MenuSlots.HOTBAR_SLOTS))
+						.then(RequiredArgumentBuilder
+								.<OpCommandSource, Integer>argument("slot",
+										IntegerArgumentType.integer(1, MenuSlots.HOTBAR_SLOTS))
 								.executes(context -> swap(context,
 										IntegerArgumentType.getInteger(context, "slot")))));
 	}
 
-	private static int swap(CommandContext<FabricClientCommandSource> context, int hotbarSlot) {
-		FabricClientCommandSource source = context.getSource();
-		Minecraft client = source.getClient();
+	private static int swap(CommandContext<OpCommandSource> context, int hotbarSlot) {
+		OpCommandSource source = context.getSource();
+		Minecraft client = Minecraft.getInstance();
 
 		if (client.player == null || client.level == null || client.gameMode == null) {
 			source.sendError(Component.translatable("craftcmd.error.not_ready"));

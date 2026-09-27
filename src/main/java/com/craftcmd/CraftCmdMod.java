@@ -5,21 +5,23 @@
 
 package com.craftcmd;
 
+import com.example.httpd.HttpdProvider;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Entry point of the (client only) mod.
+ * Client entrypoint: mounts the mod's endpoints under {@code /op} on MGHttpdProvider's shared server
+ * (127.0.0.1:3420).
  *
- * <p>Every command lives below {@code /cmdop}: {@code /cmdop craft} looks the recipe up in the client side
- * recipe book, {@code /cmdop furnace} and {@code /cmdop chest} drive the container screen that is open,
- * {@code /cmdop inventory} swaps hotbar slots and {@code /cmdop look} turns the view. All of it goes
- * through ordinary player actions (container clicks, movement packets), so no server side component and no
- * mixin is required and the mod also works on unmodified servers.
+ * <p>Five operations are served from there: {@code craft} looks the recipe up in the client side
+ * recipe book, {@code furnace} and {@code chest} drive the container screen that is open,
+ * {@code inventory} swaps hotbar slots and {@code look} turns the view. All of it goes through
+ * ordinary player actions (container clicks, movement packets), so no server side component is
+ * required and the mod also works on unmodified servers.</p>
+ *
+ * <p>The provider owns the HTTP server and the client-exit handling, so this entrypoint only
+ * registers the {@code /op} prefix.</p>
  */
 public final class CraftCmdMod implements ClientModInitializer {
 	public static final String MOD_ID = "craftcmd";
@@ -27,13 +29,6 @@ public final class CraftCmdMod implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
-		ClientCommandRegistrationCallback.EVENT.register((dispatcher, buildContext) -> dispatcher.register(
-				ClientCommands.literal("cmdop")
-						.then(CraftCommand.command())
-						.then(InventoryCommand.command())
-						.then(FurnaceCommand.command())
-						.then(ChestCommand.command())
-						.then(LookCommand.command())));
-		ClientTickEvents.END_CLIENT_TICK.register(CraftJob::tick);
+		HttpdProvider.register(OpEndpoint.PREFIX, OpEndpoint.NAME, OpEndpoint.ENDPOINTS, new OpEndpoint());
 	}
 }

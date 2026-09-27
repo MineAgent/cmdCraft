@@ -9,22 +9,30 @@ base {
 	archivesName = project.archives_base_name
 }
 
+repositories {
+	mavenCentral()
+}
+
 dependencies {
-	// To change the versions see the gradle.properties file
+	// Minecraft 26.1+ ships unobfuscated (official names), so Loom needs no `mappings` dependency.
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+
+	// Only the loader is needed (no Fabric API dependency).
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
-	// Fabric API (client command API v2 + client lifecycle events).
-	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	// MGHttpdProvider's registration API (PathHandler + HttpdProvider.register). compileOnly: the
+	// jar must not be bundled, Fabric Loader loads the real one from .minecraft/mods/.
+	// libs/httpdprovider-1.0.jar is copied from the HttpdProvider build (see README).
+	compileOnly files('libs/httpdprovider-1.0.jar')
 }
 
 processResources {
-	def version = project.version
-	inputs.property "version", version
+	def modVersion = project.version
+	inputs.property "version", modVersion
 	filteringCharset = "UTF-8"
 
 	filesMatching("fabric.mod.json") {
-		expand "version": version
+		expand "version": modVersion
 	}
 }
 

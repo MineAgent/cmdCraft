@@ -3,7 +3,7 @@
 	"id": "craftcmd",
 	"version": "${version}",
 	"name": "Craft Command",
-	"description": "Client side commands under /cmdop: craft, inventory, furnace, chest and look. Everything is driven through the vanilla screens and packets, so no server side mod is needed.",
+	"description": "Client side operations under POST 127.0.0.1:3420/op mounted through MGHttpdProvider: craft, inventory, furnace, chest and look. Everything is driven through the vanilla screens and packets, so no server side mod is needed.",
 	"authors": [
 		"MineAgent"
 	],
@@ -14,10 +14,17 @@
 			"com.craftcmd.CraftCmdMod"
 		]
 	},
+	"mixins": [
+		"craftcmd.mixins.json"
+	],
 	"depends": {
 		"fabricloader": ">=0.19.5",
 		"minecraft": "~26.2",
 		"java": ">=25",
-		"fabric-api": "*"
+		"httpdprovider": ">=1.0"
+	},
+	"contact": {
+		"homepage": "https://github.com/MineAgent/cmdCraft",
+		"sources": "https://github.com/MineAgent/cmdCraft"
 	}
 }

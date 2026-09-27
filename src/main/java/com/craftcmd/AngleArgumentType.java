@@ -7,14 +7,8 @@ package com.craftcmd;
 
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.arguments.ArgumentType;
-import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
-import com.mojang.brigadier.suggestion.Suggestions;
-import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import net.minecraft.network.chat.Component;
 
 /**
@@ -29,9 +23,6 @@ import net.minecraft.network.chat.Component;
  */
 public final class AngleArgumentType implements ArgumentType<Angle> {
 	public static final AngleArgumentType INSTANCE = new AngleArgumentType();
-
-	/** Values offered by tab completion; the relative form comes first. */
-	private static final List<String> EXAMPLES = List.of("~", "~0.1", "~-0.1", "0", "90", "-90", "180");
 
 	private static final SimpleCommandExceptionType ERROR_INVALID = new SimpleCommandExceptionType(
 			Component.translatable("craftcmd.look.error.invalid_value"));
@@ -61,23 +52,5 @@ public final class AngleArgumentType implements ArgumentType<Angle> {
 		} catch (CommandSyntaxException exception) {
 			throw ERROR_INVALID.createWithContext(reader);
 		}
-	}
-
-	@Override
-	public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
-		String remaining = builder.getRemaining();
-
-		for (String example : EXAMPLES) {
-			if (example.startsWith(remaining)) {
-				builder.suggest(example);
-			}
-		}
-
-		return builder.buildFuture();
-	}
-
-	@Override
-	public Collection<String> getExamples() {
-		return EXAMPLES;
 	}
 }
