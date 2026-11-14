@@ -2,7 +2,7 @@
 
 [![License: LGPL-3.0-only](https://img.shields.io/badge/license-LGPL--3.0--only-blue.svg)](LICENSE)
 
-**Minecraft 26.2**（Fabric）客户端容器操作接口：把合成、快捷栏、熔炉、箱子、转向这五件事，
+**Minecraft 26.2 / 26.3**（Fabric）客户端容器操作接口：把合成、快捷栏、熔炉、箱子、转向这五件事，
 挂在 **MGHttpdProvider** 的共享 HTTP 服务（`127.0.0.1:3420`）的 `/op` 前缀下，用
 **一条 POST 请求** 完成。
 
@@ -259,14 +259,14 @@ HTTP/1.1 400 Bad Request
 
 | | |
 |---|---|
-| Minecraft | 26.2 |
+| Minecraft | 26.2 / 26.3 |
 | Fabric Loader | ≥ 0.19.5 |
 | Java | ≥ 25 |
 | Fabric API | **不需要** |
 | MGHttpdProvider | ≥ 1.0（**必需**，`/op` 挂在它的 3420 服务上） |
 
-Minecraft 26.2 已不再混淆且 Fabric 使用 Mojang 官方名，所以项目不配 mappings，直接编译
-`com.mojang:minecraft:26.2`（Loom `1.17-SNAPSHOT`，见 `gradle.properties`）。
+Minecraft 26.2 / 26.3 已不再混淆且 Fabric 使用 Mojang 官方名，所以项目不配 mappings，直接编译
+`com.mojang:minecraft:26.3`（Loom `1.17-SNAPSHOT`，见 `gradle.properties`）。
 
 ## 构建 / 安装
 
@@ -276,7 +276,7 @@ Minecraft 26.2 已不再混淆且 Fabric 使用 Mojang 官方名，所以项目�
 
 ```bash
 ./gradlew build
-# -> build/libs/craftcmd-1.3.2.jar
+# -> build/libs/craftcmd-1.3.3.jar
 ```
 
 把本模组的 jar **和 MGHttpdProvider 的 jar（`httpdprovider-1.0.jar`，必需）** 一起放进
@@ -321,6 +321,9 @@ craftcmd                    命令行包装脚本 (curl 的语法糖)
 ## 调试
 
 跑单人测试世界（不需要服务端）：用一个加载了本模组、启用了作弊的单人存档进游戏即可。
+26.2 / 26.3 都用同一份 `craftcmd-1.3.3.jar` 实测过 `look` 与 `craft`（26.3 上 `look yaw 90`
+后 `/aif/info` 的 yaw 从 29.9 变为 90.0；`chat /give @s oak_log 4` 后 `craft oak_planks 4`
+成功产出 4 个木板）。
 客户端进入世界后，直接 curl 即可：
 
 ```bash

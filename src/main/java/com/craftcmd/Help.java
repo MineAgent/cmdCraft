@@ -15,7 +15,7 @@ public final class Help {
 
 	public static String text() {
 		return """
-				Craft Command — Minecraft 客户端容器操作 (Fabric, Minecraft 26.2)
+				Craft Command — Minecraft 客户端容器操作 (Fabric, Minecraft 26.2 / 26.3)
 				============================================================
 				挂载地址: http://127.0.0.1:3420/op
 				HTTP 服务由 MGHttpdProvider 提供, 它把各模组挂在 3420 端口的不同前缀下;
