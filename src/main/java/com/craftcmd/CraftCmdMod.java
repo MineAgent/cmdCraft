@@ -14,10 +14,11 @@ import org.slf4j.LoggerFactory;
  * Client entrypoint: mounts the mod's endpoints under {@code /op} on MGHttpdProvider's shared server
  * (127.0.0.1:3420).
  *
- * <p>Five operations are served from there: {@code craft} looks the recipe up in the client side
+ * <p>Seven operations are served from there: {@code craft} looks the recipe up in the client side
  * recipe book, {@code furnace} and {@code chest} drive the container screen that is open,
- * {@code inventory} swaps hotbar slots and {@code look} turns the view. All of it goes through
- * ordinary player actions (container clicks, movement packets), so no server side component is
+ * {@code inventory} swaps hotbar slots, {@code look} turns the view, {@code eat} consumes the item in
+ * the main hand and {@code mine} breaks the targeted block. All of it goes through ordinary player
+ * actions (container clicks, movement packets, use/destroy packets), so no server side component is
  * required and the mod also works on unmodified servers.</p>
  *
  * <p>The provider owns the HTTP server and the client-exit handling, so this entrypoint only

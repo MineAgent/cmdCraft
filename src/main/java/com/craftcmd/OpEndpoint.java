@@ -32,12 +32,12 @@ import net.minecraft.client.Minecraft;
  * <p>Requests arrive on HTTP worker threads. Every command is hopped onto the client thread through
  * {@link Minecraft#execute} and the worker waits for the outcome, so a response always describes
  * what really happened: {@code 200} for success, {@code 400} for a rejected command, {@code 409}
- * when no world is loaded. Crafting keeps clicking over several client ticks; that request stays
- * open until the craft job reports back.</p>
+ * when no world is loaded. Crafting, eating and mining keep working over several client ticks; such
+ * a request stays open until its job reports back.</p>
  */
 public final class OpEndpoint implements PathHandler {
 	public static final String PREFIX = "/op";
-	public static final String NAME = "Craft Command — 客户端容器操作 (合成/背包/熔炉/箱子/转向)";
+	public static final String NAME = "Craft Command — 客户端容器操作 (合成/背包/熔炉/箱子/转向/食用/挖掘)";
 
 	/** What the provider's {@code GET /} index lists for this mod. */
 	public static final List<HttpdProvider.Endpoint> ENDPOINTS = List.of(
@@ -48,8 +48,8 @@ public final class OpEndpoint implements PathHandler {
 	private static final int MAX_BODY_BYTES = 16 * 1024;
 	/** How long to wait for the command to even reach the client thread. */
 	private static final long DISPATCH_WAIT_MS = 15_000L;
-	/** Additional time a running craft job gets before the request is answered with 504. */
-	private static final long CRAFT_WAIT_MS = 120_000L;
+	/** Additional time a running job gets before the request is answered with 504. */
+	private static final long JOB_WAIT_MS = 120_000L;
 
 	@Override
 	public void handle(HttpExchange exchange, String path) throws IOException {
@@ -119,8 +119,8 @@ public final class OpEndpoint implements PathHandler {
 			boolean finished = source.await(DISPATCH_WAIT_MS);
 
 			if (!finished && source.isAsync()) {
-				// A craft job is clicking its way through the grid; wait for it to report back.
-				finished = source.await(CRAFT_WAIT_MS);
+				// A craft, eat or mine job is still working; wait for it to report back.
+				finished = source.await(JOB_WAIT_MS);
 			}
 
 			if (!finished) {

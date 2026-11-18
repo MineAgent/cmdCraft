@@ -10,6 +10,8 @@
 #   ./craftcmd chest get minecraft:iron_ingot 16    take items out of the open chest
 #   ./craftcmd look yaw 90                          turn to yaw 90
 #   ./craftcmd look pitch ~-20                      tilt 20 degrees up
+#   ./craftcmd eat 3                                consume 3 items from the main hand
+#   ./craftcmd mine                                 break the block under the crosshair
 #   ./craftcmd help                                 full manual (GET /op/)
 #   ./craftcmd -f script.txt                        run every line of a file, one request per line
 #   ./craftcmd -r 'craft stick 4'                   raw body (one request)
@@ -21,7 +23,7 @@ set -euo pipefail
 URL="${CRAFTCMD_URL:-http://127.0.0.1:3420/op}"
 
 usage() {
-	sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'
+	sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'
 	exit "${1:-0}"
 }
 

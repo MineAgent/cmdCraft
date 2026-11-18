@@ -15,7 +15,7 @@ public final class Help {
 
 	public static String text() {
 		return """
-				Craft Command — Minecraft 客户端容器操作 (Fabric, Minecraft 26.2 / 26.3)
+				Craft Command — Minecraft 客户端操作 (Fabric, Minecraft 26.3)
 				============================================================
 				挂载地址: http://127.0.0.1:3420/op
 				HTTP 服务由 MGHttpdProvider 提供, 它把各模组挂在 3420 端口的不同前缀下;
@@ -53,6 +53,21 @@ public final class Help {
 				      在 -90..90。改的就是 AdvancedInfoFetcher 的 /aif/info 里读的
 				      yaw / pitch 字段, 下一个 tick 由客户端同步给服务器。
 
+				  eat [数量]
+				      吃掉/喝掉主手上的可消耗物品 (食物、药水、牛奶桶、蜂蜜瓶、
+				      蜘蛛眼等), 默认 1 个, 一次消耗 1 个直到数量满足。数量只和
+				      主手这一格的堆叠数比较, 超过就直接返回 400, 不会去背包其它
+				      格子找; 生存模式饱食度满或手持物品不能吃时返回 400。
+				      饮品 (DRINK) 返回"已饮用", 食物返回"已食用"。
+				      创造模式有无限材料, 原版不会减少堆叠、也不会产生玻璃瓶/桶,
+				      但命令仍会按指定次数完成。
+
+				  mine
+				      用当前主手物品破坏准星瞄准的方块 (不会自动换工具或快捷栏)。
+				      目标来自和 AdvancedInfoFetcher 相同的准星命中结果。基岩、屏障
+				      等不可破坏方块、权限/世界边界限制、没瞄准方块都返回 400。
+				      生存模式按手持物品的挖掘速度逐 tick 挖, 挖掉后才返回。
+
 				物品 ID
 				  命名空间 ID, 例如 minecraft:crafting_table; 省略命名空间时默认 minecraft,
 				  即 craft crafting_table 与 craft minecraft:crafting_table 等价。
@@ -67,14 +82,17 @@ public final class Help {
 				  curl -X POST --data-binary 'chest get minecraft:iron_ingot 16' http://127.0.0.1:3420/op/
 				  curl -X POST --data-binary 'look yaw 90'                      http://127.0.0.1:3420/op/
 				  curl -X POST --data-binary 'look yaw ~-20'                    http://127.0.0.1:3420/op/
+				  curl -X POST --data-binary 'eat 3'                            http://127.0.0.1:3420/op/
+				  curl -X POST --data-binary 'mine'                             http://127.0.0.1:3420/op/
 				  curl http://127.0.0.1:3420/op/                                # 本说明
 
 				  命令行包装脚本: ./craftcmd craft stick 16    (等价于上面的 curl)
 
 				返回
 				  200  成功, 正文是执行结果 (纯文本, 一行一条), 例如 "已合成 木棍 ×16"
-				  400  命令被拒绝: 语法错误 / 原料不足 / 没打开对应界面 / 合成任务忙 ...
-				       正文是出错原因; 语法错误还附带出错位置和插入符 (^)
+				  400  命令被拒绝: 语法错误 / 原料不足 / 没打开对应界面 / 任务忙 /
+				       主手上没有可消耗物品 / 方块不可破坏 ... 正文是出错原因;
+				       语法错误还附带出错位置和插入符 (^)
 				  404  /op 下没有这个路径
 				  405  方法不允许 (GET 看说明, POST 执行命令)
 				  409  游戏客户端还没启动 / 还没进入世界
@@ -90,7 +108,11 @@ public final class Help {
 				  客户端只有打开容器界面时才知道容器内容, 所以熔炉/箱子命令必须先右键打开界面。
 				  容器操作会检查结果, 任何一步失败都尽量回滚; 但界面中途被关掉时可能已经产生
 				  部分点击 (craftcmd.error.menu_changed)。
-				  同时只允许一个合成任务; 第二个 craft 请求会立刻返回 400 busy。
+				  合成/食用/挖掘都是异步任务, 响应对应的请求会一直等到任务结束;
+				  同一时刻只允许一个这样的任务, 第二个请求会立刻返回 400 busy。
+				  食用只检查主手这一格, 不会自动从背包补充; 药水、牛奶等可饮用的
+				  物品也算"可消耗"。mine 只用当前手持物品, 不换工具、不收集掉落;
+				  目标在过程中被换掉或玩家走远时返回 400。
 				  玩家信息 (坐标/背包/聊天/声音) 在 AdvancedInfoFetcher 下:
 				  GET http://127.0.0.1:3420/aif/info
 				  按键/鼠标/截图/聊天在 mcctl 下: GET http://127.0.0.1:3420/ctl/

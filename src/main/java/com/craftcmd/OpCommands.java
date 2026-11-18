@@ -13,11 +13,11 @@ import net.minecraft.network.chat.Component;
 /**
  * The command dispatcher behind {@code POST /op/}.
  *
- * <p>The five operations of the mod ({@code craft}, {@code inventory}, {@code furnace},
- * {@code chest}, {@code look}) are plain Brigadier command trees whose source is an
- * {@link OpCommandSource} instead of a chat command source. That keeps the exact same parsing rules
- * (item ids, {@code ~} angles, furnace slots, amount ranges) and the same validation messages, but
- * the outcome is written into the HTTP response instead of the chat HUD.</p>
+ * <p>The seven operations of the mod ({@code craft}, {@code inventory}, {@code furnace},
+ * {@code chest}, {@code look}, {@code eat}, {@code mine}) are plain Brigadier command trees whose
+ * source is an {@link OpCommandSource} instead of a chat command source. That keeps the exact same
+ * parsing rules (item ids, {@code ~} angles, furnace slots, amount ranges) and the same validation
+ * messages, but the outcome is written into the HTTP response instead of the chat HUD.</p>
  *
  * <p>{@link #dispatch} runs on the client (render) thread; it is handed to
  * {@link Minecraft#execute} by the endpoint, because container clicks and player rotation may only
@@ -32,6 +32,8 @@ public final class OpCommands {
 		DISPATCHER.register(FurnaceCommand.command());
 		DISPATCHER.register(ChestCommand.command());
 		DISPATCHER.register(LookCommand.command());
+		DISPATCHER.register(EatCommand.command());
+		DISPATCHER.register(MineCommand.command());
 	}
 
 	private OpCommands() {

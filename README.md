@@ -2,7 +2,7 @@
 
 [![License: LGPL-3.0-only](https://img.shields.io/badge/license-LGPL--3.0--only-blue.svg)](LICENSE)
 
-**Minecraft 26.2 / 26.3**（Fabric）客户端容器操作接口：把合成、快捷栏、熔炉、箱子、转向这五件事，
+**Minecraft 26.3**（Fabric）客户端操作接口：把合成、快捷栏、熔炉、箱子、转向、食用、挖掘这七件事，
 挂在 **MGHttpdProvider** 的共享 HTTP 服务（`127.0.0.1:3420`）的 `/op` 前缀下，用
 **一条 POST 请求** 完成。
 
@@ -21,6 +21,8 @@ curl -X POST --data-binary 'craft minecraft:crafting_table'   http://127.0.0.1:3
 curl -X POST --data-binary 'inventory minecraft:torch 3'      http://127.0.0.1:3420/op/
 curl -X POST --data-binary 'furnace put raw minecraft:raw_iron 8' http://127.0.0.1:3420/op/
 curl -X POST --data-binary 'chest get minecraft:iron_ingot 16' http://127.0.0.1:3420/op/
+curl -X POST --data-binary 'eat 3'                            http://127.0.0.1:3420/op/
+curl -X POST --data-binary 'mine'                             http://127.0.0.1:3420/op/
 curl http://127.0.0.1:3420/op/                                # 使用说明
 ```
 
@@ -47,6 +49,8 @@ craft stick 16
 | `chest put <物品ID> [数量]` | 往打开着的箱子里放 |
 | `chest get <物品ID> [数量]` | 从打开着的箱子里取 |
 | `look <yaw\|pitch> <角度>` | 转动视角 |
+| `eat [数量]` | 吃掉/喝掉主手上的可消耗物品 |
+| `mine` | 用当前手持物品挖掉准星瞄准的方块 |
 
 物品 ID 是命名空间 ID，省略命名空间时默认 `minecraft`：`craft crafting_table` 与
 `craft minecraft:crafting_table` 等价。
@@ -148,6 +152,43 @@ look pitch ~         # 保持当前 pitch（偏移 0）
 yaw 原样保存（可以超过 ±180）；pitch 夹到原版的 `-90..90`。实际生效的值在响应里回报
 （`已转向 yaw：90.0（原 0.0）`）。
 
+### `eat [数量]`
+
+```
+eat                  # 吃掉/喝掉主手上的 1 个
+eat 3                # 连续消耗 3 个
+```
+
+`数量` 默认 `1`，范围 `1–2304`，但真正的上限是**主手这一格的堆叠数**：超过就直接 400，
+**不会去背包其它格子找，也不会自动切快捷栏**。
+
+“可以吃/喝”的判定是物品带原版 `CONSUMABLE` 组件，所以食物、药水、牛奶桶、蜂蜜瓶、蜘蛛眼、
+紫颂果等都支持。食物走 `EAT` 动画（响应“已食用”），药水/牛奶走 `DRINK` 动画（响应“已饮用”）。
+生存模式饱食度已满、或物品当前不能吃时直接 400。
+
+每个物品要等原版的消耗时间（通常 1.6 秒）；请求会一直等到吃完请求的数量才返回。吃到一半主手
+物品被换掉、被服务器取消或超时都会 400，并在正文里报告已消耗数量。
+
+注意：创造模式有无限材料，原版**不会**减少堆叠数量（药水也不会变成玻璃瓶、牛奶桶也不会变成桶）。
+这个命令在创造模式仍然会按指定次数完成，并从客户端确认每次使用结束；响应里的次数是实际使用次数，
+不是堆叠变化量。
+
+### `mine`
+
+```
+mine                 # 用当前主手物品挖掉准星瞄准的方块
+```
+
+目标就是 `AdvancedInfoFetcher` 的 `/aif/info` 里“目标方块”那一行读到的同一个准星命中结果。
+模组**不会自动换工具、不会换快捷栏、不会收集掉落**：手里是什么就用什么挖，挖不挖得动、掉不掉落
+完全按原版规则。
+
+- 没瞄准方块（空气/天空/实体）、硬度为 -1 的方块（基岩、屏障、命令方块等）、当前模式或世界
+  边界不允许破坏时，直接 400，不发破坏包。
+- 生存模式按手持物品的挖掘速度逐 tick 进行，请求会等到方块真正消失才返回；创造模式或硬度 0 的
+  方块立即完成。
+- 目标在挖掘过程中变成别的方块、玩家走出交互距离、或服务器拒绝（保护区等）时 400。
+
 ## 返回码
 
 请求体会执行在客户端主线程上；HTTP 工作线程等结果，所以响应一定描述**真正发生了什么**。
@@ -155,7 +196,7 @@ yaw 原样保存（可以超过 ±180）；pitch 夹到原版的 `-90..90`。实
 | 状态 | 含义 | 正文 |
 |---|---|---|
 | `200` | 成功 | 执行结果，纯文本，一行一条（如 `已合成 木棍 ×16`） |
-| `400` | 命令被拒绝 | 语法错误 / 原料不足 / 没打开对应界面 / 合成任务忙 … 语法错误还带出错行和插入符 `^` |
+| `400` | 命令被拒绝 | 语法错误 / 原料不足 / 没打开对应界面 / 任务忙 / 主手没有可消耗物品 / 方块不可破坏 … 语法错误还带出错行和插入符 `^` |
 | `404` | `/op` 下没有这个路径 | 提示 + 使用说明 |
 | `405` | 方法不允许 | `GET` 看说明，`POST` 执行命令（`OPTIONS` 返回 `204`） |
 | `409` | 游戏客户端还没启动 / 还没进入世界 | 说明原因 |
@@ -228,6 +269,29 @@ HTTP/1.1 400 Bad Request
 | `pitch` 超出 -90..90 | 夹到 -90 / 90，并回报实际值 |
 | `yaw` 超出 ±180 | 原样保存，不绕回 |
 
+`eat`：
+
+| 情况 | 结果 |
+|---|---|
+| 主手为空 | 400（`主手上没有可以食用或饮用的物品。`） |
+| 主手物品没有 `CONSUMABLE` 组件 | 400（`…不能食用或饮用。`） |
+| 数量超过主手堆叠数 | 400，一个都不吃；不检查其它格子 |
+| 生存模式饱食度已满 | 400（`…饱食度已满…`） |
+| 已经在使用别的物品 | 400 |
+| 吃到一半主手物品变了 / 服务器取消 / 超时 | 400，正文报告已消耗数量 |
+| 旁观模式 | 400 |
+
+`mine`：
+
+| 情况 | 结果 |
+|---|---|
+| 没瞄准方块 / 目标是空气 | 400（`没有瞄准任何方块。`） |
+| 方块硬度为 -1（基岩、屏障、命令方块等） | 400（`…无法被破坏。`） |
+| 模式、权限或世界边界不允许 | 400 |
+| 目标中途变化 / 走出交互距离 | 400 |
+| 服务器拒绝或超时 | 400（10 tick 确认窗口后判断） |
+| 旁观模式 | 400 |
+
 ## 注意事项与局限
 
 * 配方必须是**客户端配方书里已知**的。原版里捡到材料就会解锁配方；如果服务端插件发物品时没有触发
@@ -239,6 +303,9 @@ HTTP/1.1 400 Bad Request
 * `furnace` / `chest` 需要对应界面开着：客户端不知道关闭的方块实体的内容，服务器也只接受当前打开容器
   的格子点击。
 * 严格的服务器反作弊可能不喜欢大数量命令产生的连续点击包（原版本身没有点击频率限制）。
+* `eat` 只操作主手那一格，不搜索背包、不自动补货；药水等带 `CONSUMABLE` 的物品和食物一样处理。
+* `mine` 只挖请求时准星指向的一个方块，不连锁、不换工具；目标变化和服务器拒绝都会 400。
+* `craft` / `eat` / `mine` 都是异步任务，同一时刻只允许一个，第二个请求立即 400。
 * 一次 HTTP 请求只跑一条命令；想要脚本化就连发几个请求（顺序由调用方保证）。
 
 ## 实现方式
@@ -247,25 +314,29 @@ HTTP/1.1 400 Bad Request
   自己不监听端口、不管退出（服务与退出处理都由 provider 负责）。
 * `OpEndpoint` 是 `/op` 的 `PathHandler`：`GET /op/` 返回说明，`POST /op/` 读请求体，
   用 `Minecraft.execute` 把命令丢到客户端（渲染）线程执行，然后等工作线程拿到结果再返回。
-* `OpCommands` 是一棵 Brigadier 命令树（`craft`/`inventory`/`furnace`/`chest`/`look`），
+* `OpCommands` 是一棵 Brigadier 命令树（`craft`/`inventory`/`furnace`/`chest`/`look`/`eat`/`mine`），
   数据源是 `OpCommandSource` 而不是聊天命令源：命令只往里面写文本，HTTP 线程读它拼响应。
   解析规则和老的 `/cmdop` 完全一致（物品 ID、`~` 角度、熔炉槽位、数量范围）。
-* `CraftJob` 仍然一个 tick 一步地点击合成格；结束时调用 `OpCommandSource#complete()` 唤醒
-  HTTP 线程。每 tick 的驱动点换成了对 `Minecraft#tick` 的 Mixin（`MinecraftMixin`），
-  所以本模组**不需要 Fabric API**。
+* 三个跨 tick 的任务由 `Jobs` 统一驱动（`CraftJob`/`EatJob`/`MineJob`），同一时刻只允许一个；
+  结束时调用 `OpCommandSource#complete()` 唤醒 HTTP 线程。每 tick 的驱动点是对
+  `Minecraft#tick` 的 Mixin（`MinecraftMixin`），所以本模组**不需要 Fabric API**。
+* `EatJob` 发出原版 `useItem` 后，靠 `MultiPlayerGameModeMixin` 拦下原版“松开右键”的取消包，
+  直到服务器完成消耗并把新堆叠同步回来。
+* `MineJob` 每 tick 调用 `continueDestroyBlock`；`MinecraftMixin` 在任务期间取消原版
+  `continueAttack`，否则原版每 tick 都会发 ABORT 把挖掘进度清零。
 * 所有 `Minecraft` 状态只在客户端线程上读写；HTTP 线程只碰线程安全的 `OpCommandSource`。
 
 ## 依赖与要求
 
 | | |
 |---|---|
-| Minecraft | 26.2 / 26.3 |
+| Minecraft | 26.3 |
 | Fabric Loader | ≥ 0.19.5 |
 | Java | ≥ 25 |
 | Fabric API | **不需要** |
 | MGHttpdProvider | ≥ 1.0（**必需**，`/op` 挂在它的 3420 服务上） |
 
-Minecraft 26.2 / 26.3 已不再混淆且 Fabric 使用 Mojang 官方名，所以项目不配 mappings，直接编译
+Minecraft 26.3 已不再混淆且 Fabric 使用 Mojang 官方名，所以项目不配 mappings，直接编译
 `com.mojang:minecraft:26.3`（Loom `1.17-SNAPSHOT`，见 `gradle.properties`）。
 
 ## 构建 / 安装
@@ -276,7 +347,7 @@ Minecraft 26.2 / 26.3 已不再混淆且 Fabric 使用 Mojang 官方名，所以
 
 ```bash
 ./gradlew build
-# -> build/libs/craftcmd-1.3.3.jar
+# -> build/libs/craftcmd-1.4.0.jar
 ```
 
 把本模组的 jar **和 MGHttpdProvider 的 jar（`httpdprovider-1.0.jar`，必需）** 一起放进
@@ -284,7 +355,7 @@ Minecraft 26.2 / 26.3 已不再混淆且 Fabric 使用 Mojang 官方名，所以
 
 ```
 MGHttpdProvider listening on http://127.0.0.1:3420
-registered /op (Craft Command — 客户端容器操作 (合成/背包/熔炉/箱子/转向))
+registered /op (Craft Command — 客户端容器操作 (合成/背包/熔炉/箱子/转向/食用/挖掘))
 ```
 
 ## 目录
@@ -301,8 +372,13 @@ src/main/java/com/craftcmd/
   FurnaceCommand.java       furnace put|get ...
   ChestCommand.java         chest put|get ...
   LookCommand.java          look <yaw|pitch> <角度>
+  EatCommand.java           eat [数量]
+  MineCommand.java          mine
   CraftPlan.java            已校验的合成计划 (配方查找/材料模拟)
   CraftJob.java             每 tick 一步驱动合成
+  EatJob.java               每 tick 一步驱动食用/饮用
+  MineJob.java              每 tick 一步驱动破坏方块
+  Jobs.java                 三个任务的互斥与每 tick 驱动
   MenuSlots.java            容器槽位读写小工具
   FurnaceSlot.java          熔炉槽位 (raw/fuel/product)
   Angle.java                一个旋转指令 (绝对或相对)
@@ -310,7 +386,8 @@ src/main/java/com/craftcmd/
   AngleArgumentType.java    角度的 Brigadier 参数
   FurnaceSlotArgumentType.java  熔炉槽位的 Brigadier 参数
 src/main/java/com/craftcmd/mixin/
-  MinecraftMixin.java       注入 Minecraft#tick, 驱动 CraftJob
+  MinecraftMixin.java       注入 Minecraft#tick 驱动 Jobs, 并在挖掘时取消 continueAttack
+  MultiPlayerGameModeMixin.java  食用期间拦下原版的 releaseUsingItem
 src/main/resources/
   craftcmd.mixins.json      Mixin 配置
   assets/craftcmd/lang/     中英文文案 (响应正文按客户端语言本地化)
@@ -321,9 +398,9 @@ craftcmd                    命令行包装脚本 (curl 的语法糖)
 ## 调试
 
 跑单人测试世界（不需要服务端）：用一个加载了本模组、启用了作弊的单人存档进游戏即可。
-26.2 / 26.3 都用同一份 `craftcmd-1.3.3.jar` 实测过 `look` 与 `craft`（26.3 上 `look yaw 90`
+26.3 上用 `craftcmd-1.4.0.jar` 实测过 `look`、`craft`、`eat` 与 `mine`（`look yaw 90`
 后 `/aif/info` 的 yaw 从 29.9 变为 90.0；`chat /give @s oak_log 4` 后 `craft oak_planks 4`
-成功产出 4 个木板）。
+成功产出 4 个木板；`eat 3` 消耗 3 个蜘蛛眼；`mine` 按手持物速度挖掉目标方块）。
 客户端进入世界后，直接 curl 即可：
 
 ```bash
@@ -332,6 +409,8 @@ curl http://127.0.0.1:3420/op/                    # 使用说明
 curl -X POST --data-binary 'look yaw 90' http://127.0.0.1:3420/op/
 curl http://127.0.0.1:3420/aif/info | grep yaw    # 确认转向生效 (AdvancedInfoFetcher)
 curl -X POST --data-binary 'craft stick 4' http://127.0.0.1:3420/op/
+curl -X POST --data-binary 'eat 3' http://127.0.0.1:3420/op/          # 主手可消耗物品
+curl -X POST --data-binary 'mine' http://127.0.0.1:3420/op/          # 准星瞄准的方块
 ```
 
 容器类命令需要先打开对应界面，可以用 mcctl（`/ctl`）代劳：给物品、放置方块、右键打开，例如
@@ -342,8 +421,10 @@ curl -X POST --data-binary 'mouse right' http://127.0.0.1:3420/ctl/      # 对�
 curl -X POST --data-binary 'chest put minecraft:oak_log 8' http://127.0.0.1:3420/op/
 ```
 
-关掉游戏时不会多出 `crash-reports/` 文件：共享服务的退出处理在 MGHttpdProvider 里
-（它守候渲染线程，客户端退出后停服务并结束 JVM，避免 post-main 看门狗写崩溃报告）。
+共享服务的退出处理在 MGHttpdProvider 里（它守候渲染线程，客户端退出后停服务并结束 JVM，
+避免 post-main 看门狗写崩溃报告）。注意：装了 Baritone 时，它的非 daemon worker 线程仍可能触发
+post-main 看门狗，正常退出也会写一份 `Client shutdown from post-main` 崩溃报告并以 248 退出；
+这是 Baritone 与 provider 1.2.x 的已知现象，与 `/op` 无关。
 
 ## 许可证
 

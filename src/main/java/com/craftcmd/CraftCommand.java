@@ -46,7 +46,7 @@ public final class CraftCommand {
 		OpCommandSource source = context.getSource();
 		Minecraft client = Minecraft.getInstance();
 
-		if (CraftJob.isRunning()) {
+		if (Jobs.isBusy()) {
 			source.sendError(Component.translatable("craftcmd.error.busy"));
 			return 0;
 		}
